@@ -8,10 +8,28 @@ from bs4 import BeautifulSoup, Comment
 from program_data import ProgramData
 
 
+def format_time_string(time_str):
+    """
+    Przyjmuje ciąg znaków reprezentujący czas, np. "8 : 05 : 30" lub "8:5:3",
+    usuwa spacje i uzupełnia zerami poszczególne części do dwóch cyfr, zwracając
+    wynik w formacie HH:MM:SS.
+    """
+    # Usuń wszystkie spacje
+    time_str = time_str.replace(" ", "")
+    parts = time_str.split(":")
+    if len(parts) == 3:
+        hour, minute, second = parts
+        hour = hour.zfill(2)
+        minute = minute.zfill(2)
+        second = second.zfill(2)
+        return f"{hour}:{minute}:{second}"
+    return time_str
+
+
 def parse_html_file(file_path):
     """
     Parsuje plik HTML i wyciąga z niego dane programu oraz detali.
-    Dodatkowo próbuje wyłuskać grubość materiału.
+    Dodatkowo próbuje wyłuskać grubość materiału oraz liczbę powtórzeń.
     """
     with open(file_path, "r", encoding="cp1250") as file:
         html_content = file.read()
@@ -55,14 +73,17 @@ def parse_html_file(file_path):
                 nobr_tag = tr.find("nobr")
                 if nobr_tag:
                     text = nobr_tag.get_text(strip=True)
+                    # Pobieramy część przed nawiasem, jeśli występuje
                     program_time = text.split("[")[0].strip() if "[" in text else text
-        elif c_text == "Anzahl Programmdurchlaeufe":
-            tr = comment.find_next("tr")
+        # Zmieniona logika pobierania liczby powtórzeń
+        elif ("program" in c_text.lower() and "durch" in c_text.lower()):
+            tr = comment.find_next_sibling("tr")
             if tr:
                 td_tags = tr.find_all("td")
                 for td in td_tags:
-                    if td.get_text(strip=True).isdigit():
-                        program_counts = td.get_text(strip=True)
+                    txt = td.get_text(strip=True)
+                    if txt.isdigit():
+                        program_counts = txt
                         break
         elif c_text == "HTML-Block: Einzelteil-Informationen mit Grafiken, ohne Barcode":
             table = comment.find_next("table")
@@ -77,5 +98,8 @@ def parse_html_file(file_path):
             if m:
                 thickness = float(m.group(1))
                 break
+
+    # Ujednolicenie formatu czasu do HH:MM:SS
+    program_time = format_time_string(program_time)
 
     return ProgramData(program_name, material, thickness, program_time, program_counts, details_rows)

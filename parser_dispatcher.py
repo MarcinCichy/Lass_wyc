@@ -7,6 +7,7 @@ from html_parser import parse_html_file
 from lst_parser import parse_lst_file
 from program_data import ProgramData
 
+
 def get_program_data(file_path):
     ext = os.path.splitext(file_path)[1].lower()
     if ext == ".html":

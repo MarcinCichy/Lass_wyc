@@ -6,6 +6,7 @@ Obsługuje zarówno pliki HTML (obiekty BeautifulSoup) jak i LST (lista słownik
 import ntpath
 from parser_dispatcher import get_program_data
 
+
 class Detail:
     def __init__(self, name, material, thickness, dimension_x, dimension_y, element_cut_time, quantity, index):
         self.name = name
@@ -55,6 +56,7 @@ class Detail:
         print(f"Całkowity koszt jednego detalu: {self.total_detail_cost()} zł netto/szt.")
         if self.quantity > 1:
             print(f"Koszt {self.quantity} detali: {self.quantity_total_cost()} zł netto.")
+
 
 def get_element_data(file_path):
     program = get_program_data(file_path)
