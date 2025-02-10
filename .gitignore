@@ -3,3 +3,7 @@ LST_structure_explained.md
 .idea/
 __pycache__/
 *.pyc
+data_parser.py
+get_element_data.py
+LassSup2.py
+structure_description.md
