@@ -3,6 +3,7 @@ Główny moduł interfejsu użytkownika dla programu wyceny detali laserowych.
 Umożliwia wczytanie pliku (HTML lub LST) i prezentację danych programu oraz detali.
 """
 
+import os
 import sys
 from pathlib import Path
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -103,7 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.statusBar().showMessage("Gotowy")
 
-    def open_file_dialog(self):
+    def open_file_dialog(self, os=None):
         home_dir = str(Path.home())
         file_filter = "HTML files (*.html);;LST files (*.lst)"
         file_path, _ = QFileDialog.getOpenFileName(self, "Otwórz plik", home_dir, file_filter)
@@ -125,6 +126,19 @@ class MainWindow(QtWidgets.QMainWindow):
             # Pobranie danych detali i uzupełnienie tabeli
             self.detail_list = get_element_data(file_path)
             self.populate_details_table()
+
+            # # Jeżeli wczytany plik to LST – wywołaj funkcję ekstrakcji plików GEO
+            # if file_path.lower().endswith(".lst"):
+            #     # Ustal katalog wyjściowy – np. w tym samym folderze co LST lub inny (możesz dodać wybór w GUI)
+            #     output_dir = os.path.join(os.path.dirname(file_path), "geo_extracted")
+            #     import os
+            #     os.makedirs(output_dir, exist_ok=True)
+            #     # Importujemy funkcję z naszego modułu lst_geo_extractor
+            #     from lst_geo_extractor import extract_geo_files
+            #     extract_geo_files(file_path, output_dir)
+            #     self.statusBar().showMessage(
+            #         f"Załadowano {len(self.detail_list)} detali. Pliki GEO zapisane w {output_dir}")
+
 
     def populate_details_table(self):
         self.tableWidget.setRowCount(0)
