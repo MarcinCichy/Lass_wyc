@@ -10,6 +10,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 from parser_dispatcher import get_program_data
 from detail_data import get_element_data
+import glob
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -89,7 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tableWidget = QtWidgets.QTableWidget(self.groupBox_Details)
         self.tableWidget.setGeometry(QtCore.QRect(10, 30, 980, 360))
         headers = [
-            "Nazwa detalu", "Materiał", "Grubość", "Wymiar X", "Wymiar Y",
+            "Rysunek detalu", "Nazwa detalu", "Materiał", "Grubość", "Wymiar X", "Wymiar Y",
             "Czas cięcia", "Ilość", "Koszt cięcia", "Koszt materiału",
             "Koszt detalu", "Łączny koszt"
         ]
@@ -104,7 +105,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.statusBar().showMessage("Gotowy")
 
-    def open_file_dialog(self, os=None):
+    def open_file_dialog(self):
         home_dir = str(Path.home())
         file_filter = "HTML files (*.html);;LST files (*.lst)"
         file_path, _ = QFileDialog.getOpenFileName(self, "Otwórz plik", home_dir, file_filter)
@@ -125,7 +126,31 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # Pobranie danych detali i uzupełnienie tabeli
             self.detail_list = get_element_data(file_path)
+            print("Pobrano detale:", len(self.detail_list))
+            if not self.detail_list:
+                print("UWAGA: Lista detali jest pusta!")
+
+            # Jeśli wczytano plik HTML, przypisujemy ścieżki do rysunków bmp
+            if file_path.lower().endswith(".html"):
+                base_dir = os.path.dirname(file_path)
+                for detail in self.detail_list:
+                    # Upewnij się, że nazwy są bez zbędnych spacji
+                    prog_name = self.program_data.program_name.strip()
+                    det_name = detail.name.strip()
+                    # Wzorzec: nazwa-programu_nazwa-detalu*.bmp
+                    pattern = os.path.join(base_dir, f"{prog_name}_{det_name}*.bmp")
+                    print("Szukam plików według wzorca:", pattern)
+                    matches = glob.glob(pattern)
+                    if matches:
+                        print("Znaleziono:", matches)
+                        detail.drawing_path = matches[0]
+                    else:
+                        print("Nie znaleziono plików dla wzorca:", pattern)
+                        detail.drawing_path = None
+
             self.populate_details_table()
+            self.statusBar().showMessage(f"Załadowano {len(self.detail_list)} detali.")
+
 
             # # Jeżeli wczytany plik to LST – wywołaj funkcję ekstrakcji plików GEO
             # if file_path.lower().endswith(".lst"):
@@ -139,12 +164,31 @@ class MainWindow(QtWidgets.QMainWindow):
             #     self.statusBar().showMessage(
             #         f"Załadowano {len(self.detail_list)} detali. Pliki GEO zapisane w {output_dir}")
 
-
     def populate_details_table(self):
         self.tableWidget.setRowCount(0)
         for detail in self.detail_list:
             row = self.tableWidget.rowCount()
             self.tableWidget.insertRow(row)
+
+            # Kolumna 0: Rysunek detalu
+            item_drawing = QtWidgets.QTableWidgetItem()
+            drawing_path = getattr(detail, "drawing_path", None)
+            if drawing_path and os.path.exists(drawing_path):
+                try:
+                    pixmap = QtGui.QPixmap(drawing_path)
+                    if not pixmap.isNull():
+                        scaled_pixmap = pixmap.scaled(64, 64, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+                        item_drawing.setIcon(QtGui.QIcon(scaled_pixmap))
+                    else:
+                        item_drawing.setText("Brak rysunku")
+                except Exception as e:
+                    print("Błąd podczas wczytywania obrazka:", e)
+                    item_drawing.setText("Błąd wczytywania")
+            else:
+                item_drawing.setText("Brak rysunku")
+            self.tableWidget.setItem(row, 0, item_drawing)
+
+            # Pozostałe kolumny (przesunięte o 1)
             name = detail.name
             material = detail.material
             thickness = f"{detail.thickness} mm"
@@ -156,15 +200,15 @@ class MainWindow(QtWidgets.QMainWindow):
             cost_material = f"{detail.element_material_cost()} zł"
             cost_detail = f"{detail.total_detail_cost()} zł"
             total_cost = f"{detail.quantity_total_cost()} zł"
+
             values = [name, material, thickness, dimX, dimY, cut_time,
                       quantity, cost_cut, cost_material, cost_detail, total_cost]
-            for col, val in enumerate(values):
+            for col, val in enumerate(values, start=1):
                 item = QtWidgets.QTableWidgetItem(val)
-                if col == 10:
+                if col == 11:  # przykładowe wyśrodkowanie ostatniej kolumny
                     item.setTextAlignment(QtCore.Qt.AlignCenter)
                 self.tableWidget.setItem(row, col, item)
         self.statusBar().showMessage(f"Załadowano {len(self.detail_list)} detali.")
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
