@@ -107,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_file_dialog(self):
         home_dir = str(Path.home())
-        file_filter = "HTML files (*.html);;LST files (*.lst)"
+        file_filter = "HTML files (*.html);;LST files (*.lst);;PDF files (*.pdf)"
         file_path, _ = QFileDialog.getOpenFileName(self, "Otwórz plik", home_dir, file_filter)
         if file_path:
             self.lbl_Program_Path_Value.setHidden(False)
@@ -138,7 +138,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     prog_name = self.program_data.program_name.strip()
                     det_name = detail.name.strip()
                     # Wzorzec: nazwa-programu_nazwa-detalu*.bmp
-                    pattern = os.path.join(base_dir, f"{prog_name}_{det_name}*.bmp")
+                    pattern = os.path.join(base_dir, f"*{prog_name}_{det_name}*.bmp")
                     print("Szukam plików według wzorca:", pattern)
                     matches = glob.glob(pattern)
                     if matches:
@@ -147,6 +147,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     else:
                         print("Nie znaleziono plików dla wzorca:", pattern)
                         detail.drawing_path = None
+            elif file_path.lower().endswith(".pdf"):
+                # (opcjonalnie) nie szukamy powiązanych rysunków dla PDF
+                for detail in self.detail_list:
+                    detail.drawing_path = None
 
             self.populate_details_table()
             self.statusBar().showMessage(f"Załadowano {len(self.detail_list)} detali.")
