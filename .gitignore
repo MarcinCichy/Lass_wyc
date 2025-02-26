@@ -7,3 +7,7 @@ data_parser.py
 get_element_data.py
 LassSup2.py
 structure_description.md
+detail_data.py
+program_data.py
+parser_dispatcher.py
+main_gui.py

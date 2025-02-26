@@ -152,15 +152,15 @@ def parse_lst_file(file_path):
     return ProgramData(program_name, material, thickness, program_time, program_counts, details_table_rows)
 
 
-def get_program_data(file_path):
-    """
-    W zależności od rozszerzenia (HTML lub LST) wywołuje odpowiedni parser.
-    """
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == ".html":
-        from html_parser import parse_html_file
-        return parse_html_file(file_path)
-    elif ext == ".lst":
-        return parse_lst_file(file_path)
-    else:
-        raise ValueError("Unsupported file type: " + ext)
+# def get_program_data(file_path):
+#     """
+#     W zależności od rozszerzenia (HTML lub LST) wywołuje odpowiedni parser.
+#     """
+#     ext = os.path.splitext(file_path)[1].lower()
+#     if ext == ".html":
+#         from html_parser import parse_html_file
+#         return parse_html_file(file_path)
+#     elif ext == ".lst":
+#         return parse_lst_file(file_path)
+#     else:
+#         raise ValueError("Unsupported file type: " + ext)
