@@ -17,9 +17,9 @@ def parse_html(file_path: str) -> Program:
     # Parsowanie danych programu z komentarzy
     program_name = ""
     material = ""
-    thicknes = 0.0
+    thicknes = ""
     machine_time = ""
-    program_counts = 0
+    program_counts = ""
 
     for comment in comments:
         if comment.strip() == "Programm-Nummer und Bemerkung":
@@ -41,10 +41,11 @@ def parse_html(file_path: str) -> Program:
                     except ValueError:
                         material = material_sub
                     try:
-                        thicknes_str = material_string[minus_index + 1:minus_index + 5].strip()
+                        thicknes_str = material_string[minus_index + 1:minus_index + 2].strip()
+                        print(thicknes_str)
                         thicknes = abs(float(thicknes_str))
                     except (ValueError, UnboundLocalError):
-                        thicknes = 0.0
+                        thicknes = 10000
         elif comment.strip() == "Maschinenzeit/Tafel":
             tr = comment.find_next_sibling('tr')
             if tr:

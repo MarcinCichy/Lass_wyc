@@ -1,166 +1,104 @@
-"""
-Moduł do parsowania plików LST z danymi programu.
-"""
-
-import os
 import re
-from program_data import ProgramData
+import os
 
+class Detail:
+    def __init__(self, name: str):
+        self.name = name
+        self.points = []  # Lista punktów: [(x, y), ...]
 
-def extract_lst_section(lines, begin_marker, end_marker):
-    """
-    Wyodrębnia linie z sekcji LST między begin_marker a end_marker.
-    """
-    in_section = False
-    section_lines = []
-    for line in lines:
-        if begin_marker in line:
-            in_section = True
-            continue
-        if end_marker in line:
-            in_section = False
-            break
-        if in_section:
-            section_lines.append(line.rstrip("\n"))
-    return section_lines
+    def add_point(self, x: float, y: float):
+        self.points.append((x, y))
 
+    def to_svg_string(self) -> str:
+        if not self.points:
+            return ""
+        xs = [p[0] for p in self.points]
+        ys = [p[1] for p in self.points]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        width = max_x - min_x or 1
+        height = max_y - min_y or 1
+        # Przesuń punkty tak, aby minimalna współrzędna była 0
+        shifted = [(x - min_x, y - min_y) for (x, y) in self.points]
+        points_str = " ".join(f"{x},{y}" for x, y in shifted)
+        svg_content = (
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+            f'viewBox="0 0 {width} {height}">\n'
+            f'  <polygon points="{points_str}" fill="none" stroke="black" stroke-width="1"/>\n'
+            f'</svg>\n'
+        )
+        return svg_content
 
-def join_da_lines(lines):
-    """
-    Łączy linie DA z ich kontynuacjami (linie zaczynające się od "*").
-    Zwraca listę pełnych linii DA.
-    """
-    da_lines = []
-    current_line = ""
-    for line in lines:
-        if line.startswith("DA,"):
-            if current_line:
-                da_lines.append(current_line)
-            current_line = line.strip()
-        elif line.startswith("*"):
-            current_line += " " + line.strip().lstrip("*").strip()
-    if current_line:
-        da_lines.append(current_line)
-    return da_lines
+    def save_to_svg(self, filename: str):
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(self.to_svg_string())
 
+class LSTParser:
+    def __init__(self):
+        self.details = []  # Lista obiektów Detail
 
-def parse_lst_section_with_headers(section_lines):
-    """
-    Dla danej sekcji LST (z nagłówkami i danymi) wyodrębnia:
-      - listę nagłówków (z linii zaczynających się od "MM,AT")
-      - listę wierszy danych (każdy jako lista wartości pobranych z DA)
-    """
-    headers = []
-    for line in section_lines:
-        if line.startswith("MM,AT"):
-            match = re.search(r",\s*'([^']+)'", line)
-            if match:
-                header_name = match.group(1).strip()
-                headers.append(header_name)
-    data_rows = []
-    da_lines = join_da_lines(section_lines)
-    for da in da_lines:
-        parts = [p.strip(" '") for p in da.split(",") if p.strip()]
-        if parts and parts[0] == "DA":
-            data_rows.append(parts[1:])  # pomijamy pierwszy element "DA"
-    return headers, data_rows
+    def _parse_numbers(self, text: str) -> list:
+        # Wyodrębnia liczby, np. z tekstu "X-0.605Y-1.751"
+        numbers = re.findall(r'[-+]?\d*\.\d+|[-+]?\d+', text)
+        return [float(n) for n in numbers]
 
+    def parse_content(self, content: str) -> list:
+        """
+        Parsuje zawartość pliku LST i dzieli ją na sekcje START_TEXT/STOP_TEXT.
+        Każda taka sekcja traktowana jest jako osobny detal.
+        Wewnątrz sekcji wyodrębniamy linie, które zawierają współrzędne X i Y.
+        """
+        self.details = []
+        # Znajdź wszystkie fragmenty między START_TEXT a STOP_TEXT
+        sections = re.findall(r'START_TEXT(.*?)STOP_TEXT', content, flags=re.DOTALL)
+        if not sections:
+            print("Nie znaleziono sekcji START_TEXT/STOP_TEXT")
+            return self.details
 
-def convert_minutes_to_hhmmss(minutes_val):
-    """
-    Konwertuje wartość podaną w minutach (jako float) na format HH:MM:SS.
-    """
-    total_seconds = int(round(minutes_val * 60))
-    hours = total_seconds // 3600
-    minutes = (total_seconds % 3600) // 60
-    seconds = total_seconds % 60
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        for idx, sec in enumerate(sections, start=1):
+            # Spróbuj wyodrębnić nazwę detalu z komentarza (np. "(NUMER DETALU:...)" )
+            name_match = re.search(r'\(NUMER DETALU:(.*?)\)', sec)
+            name = name_match.group(1).strip() if name_match else f"Detail_{idx}"
+            detail = Detail(name)
+            for line in sec.splitlines():
+                line = line.strip()
+                # Jeśli linia zawiera oba znaki X i Y, spróbuj wyodrębnić współrzędne.
+                if 'X' in line and 'Y' in line:
+                    # Opcjonalnie pomiń linie zawierające "TC_" – mogą to być komendy techniczne.
+                    if "TC_" in line:
+                        continue
+                    nums = self._parse_numbers(line)
+                    # Zakładamy, że pierwsze dwie liczby odpowiadają współrzędnym X i Y.
+                    if len(nums) >= 2:
+                        x, y = nums[0], nums[1]
+                        detail.add_point(x, y)
+            self.details.append(detail)
+        return self.details
 
+    def parse_file(self, file_path: str) -> list:
+        with open(file_path, 'r', encoding='cp1250') as f:
+            content = f.read()
+        return self.parse_content(content)
 
-def parse_lst_file(file_path):
-    """
-    Parsuje plik LST i wyciąga z niego dane programu oraz dane detali.
-    W szczególności:
-      - Sekcja BEGIN_PROGRAMM: pobieramy nazwę programu oraz czas trwania (konwertowany na HH:MM:SS).
-      - Sekcja BEGIN_EINRICHTEPLAN_INFO: pobieramy materiał (z pola "Material-ID") i ilość powtórzeń.
-      - Sekcja BEGIN_SHEET_TECH: pobieramy grubość (z pola "Blechmass Z").
-      - Sekcja BEGIN_PARTS_IN_PROGRAM: przekształcamy dane detali do listy słowników.
-    """
-    with open(file_path, "r", encoding="cp1250") as file:
-        lines = file.readlines()
+    def save_details(self, output_dir: str):
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        for idx, det in enumerate(self.details, start=1):
+            safe_name = re.sub(r'[^A-Za-z0-9_\-]', '_', det.name)
+            if not safe_name:
+                safe_name = f"detail_{idx}"
+            filename = os.path.join(output_dir, f"detail_{idx}_{safe_name}.svg")
+            det.save_to_svg(filename)
+            print(f"Zapisano detal '{det.name}' do pliku: {filename}")
 
-    # 1. Sekcja BEGIN_PROGRAMM – dane głównego programu
-    prog_section = extract_lst_section(lines, "BEGIN_PROGRAMM", "ENDE_PROGRAMM")
-    prog_headers, prog_data_rows = parse_lst_section_with_headers(prog_section)
-    main_prog = None
-    for row in prog_data_rows:
-        if len(row) >= 2 and row[1].upper() == "HP":
-            main_prog = row
-            break
-    if not main_prog and prog_data_rows:
-        main_prog = prog_data_rows[-1]
-    program_name = main_prog[0] if main_prog and len(main_prog) > 0 else ""
-    # Konwersja czasu z minut (np. "2.46") na format HH:MM:SS
-    if main_prog and len(main_prog) > 3:
-        try:
-            minutes_val = float(main_prog[3])
-            program_time = convert_minutes_to_hhmmss(minutes_val)
-        except Exception:
-            program_time = "N/A"
-    else:
-        program_time = "N/A"
+if __name__ == "__main__":
+    # Przykład użycia:
+    lst_file = "mc0929n5.LST"  # Podaj tutaj ścieżkę do Twojego pliku LST
+    output_directory = "wyniki_svg"  # Folder, gdzie zapiszemy pliki SVG
 
-    # 2. Sekcja BEGIN_EINRICHTEPLAN_INFO – pobieramy materiał oraz ilość powtórzeń
-    einr_section = extract_lst_section(lines, "BEGIN_EINRICHTEPLAN_INFO", "ENDE_EINRICHTEPLAN_INFO")
-    einr_headers, einr_data_rows = parse_lst_section_with_headers(einr_section)
-    program_counts = "N/A"
-    material = ""
-    if einr_headers and einr_data_rows:
-        data = einr_data_rows[0]  # zakładamy, że pierwszy wiersz zawiera dane
-        if len(einr_headers) <= len(data):
-            mapping = dict(zip(einr_headers, data))
-            program_counts = mapping.get("Anzahl der Programmdurchlaeufe", "N/A")
-            material_raw = mapping.get("Material-ID", "")
-            m = re.match(r"([^-]+)-\d+", material_raw)
-            if m:
-                material = m.group(1).strip()
-            else:
-                material = material_raw
-
-    # 3. Sekcja BEGIN_SHEET_TECH – pobieramy grubość arkusza
-    sht_section = extract_lst_section(lines, "BEGIN_SHEET_TECH", "ENDE_SHEET_TECH")
-    sht_headers, sht_data_rows = parse_lst_section_with_headers(sht_section)
-    thickness = 0
-    if sht_headers and sht_data_rows:
-        try:
-            idx = sht_headers.index("Blechmass Z")
-            data = sht_data_rows[0]
-            if idx < len(data):
-                thickness = float(data[idx])
-        except (ValueError, IndexError):
-            thickness = 0
-
-    # 4. Sekcja BEGIN_PARTS_IN_PROGRAM – pobieramy dane detali jako listę słowników
-    parts_section = extract_lst_section(lines, "BEGIN_PARTS_IN_PROGRAM", "ENDE_PARTS_IN_PROGRAM")
-    parts_headers, parts_data_rows = parse_lst_section_with_headers(parts_section)
-    details_table_rows = []
-    if parts_headers and parts_data_rows:
-        for row in parts_data_rows:
-            mapping = dict(zip(parts_headers, row))
-            details_table_rows.append(mapping)
-
-    return ProgramData(program_name, material, thickness, program_time, program_counts, details_table_rows)
-
-
-# def get_program_data(file_path):
-#     """
-#     W zależności od rozszerzenia (HTML lub LST) wywołuje odpowiedni parser.
-#     """
-#     ext = os.path.splitext(file_path)[1].lower()
-#     if ext == ".html":
-#         from html_parser import parse_html_file
-#         return parse_html_file(file_path)
-#     elif ext == ".lst":
-#         return parse_lst_file(file_path)
-#     else:
-#         raise ValueError("Unsupported file type: " + ext)
+    parser = LSTParser()
+    details = parser.parse_file(lst_file)
+    print(f"Znaleziono {len(details)} detali")
+    for idx, d in enumerate(details, start=1):
+        print(f"Detal {idx}: {d.name}, liczba punktów: {len(d.points)}")
+    parser.save_details(output_directory)
