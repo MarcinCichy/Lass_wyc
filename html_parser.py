@@ -42,7 +42,6 @@ def parse_html(file_path: str) -> Program:
                         material = material_sub
                     try:
                         thicknes_str = material_string[minus_index + 1:minus_index + 2].strip()
-                        print(thicknes_str)
                         thicknes = abs(float(thicknes_str))
                     except (ValueError, UnboundLocalError):
                         thicknes = 10000

@@ -18,9 +18,11 @@ def parse_pdf(file_path: str) -> Program:
         full_text += page.get_text("text")
 
     # Wyodrębnianie danych programu (analogicznie do HTML)
-    program_name = find_field(full_text, "NAZWA PROGRAMU")
+    program_name_full = find_field(full_text, "NAZWA PROGRAMU")
+    program_name = program_name_full[:-2]
     material = find_field(full_text, r"MATERIAŁ \(ARKUSZ\)")
-    machine_time = find_field(full_text, "CZAS MASZYNOWY")
+    machine_time_full = find_field(full_text, "CZAS MASZYNOWY")
+    machine_time =  machine_time_full[0:11]
     try:
         program_counts = int(find_field(full_text, "ILOŚĆ PRZEBIEGÓW PROGRAMU"))
     except ValueError:
@@ -34,7 +36,7 @@ def parse_pdf(file_path: str) -> Program:
     except ValueError:
         prog_material = material_sub
     try:
-        thicknes_str = material[minus_index + 1:minus_index + 5].strip()
+        thicknes_str = material[minus_index + 1:minus_index + 2].strip()
         thicknes = abs(float(thicknes_str))
     except (ValueError, UnboundLocalError):
         thicknes = 0.0
@@ -49,15 +51,18 @@ def parse_pdf(file_path: str) -> Program:
         details_text = ""
 
     # Rozdzielamy sekcje detali – zakładamy, że każdy detal zaczyna się od pojawienia się pola "NAZWA PLIKU GEO:"
-    detail_sections = re.split(r"NAZWA PLIKU GEO:", details_text)
+    detail_sections = re.split(r"NUMER CZĘŚCI:", details_text)
+    print(f"raw detail_sections:{detail_sections}")
+    #detail_sections = re.split(r"NAZWA PLIKU GEO:", details_text)
     # Pierwszy element może zawierać dane nie należące do detali, więc pomijamy go
     detail_sections = detail_sections[1:]
+    print(f"detail_sections:{detail_sections}")
 
     details = []
     # Pobierz obrazy ze stron PDF, które zawierają sekcje detali.
     # Przyjmujemy, że obrazy są uporządkowane – wyodrębniamy wszystkie obrazy z całego dokumentu
     images = extract_all_detail_images(doc)
-    image_index = 0  # indeks obrazu do przypisania
+    image_index = 1  # indeks obrazu do przypisania
 
     for sec in detail_sections:
         # Dla każdej sekcji próbujemy wyodrębnić pola:
@@ -67,7 +72,10 @@ def parse_pdf(file_path: str) -> Program:
             0].strip()  # bo podział nastąpił po "NAZWA PLIKU GEO:"; pierwsza linia zawiera resztę tekstu
         # Z geo_field wyciągamy tylko nazwę – usuwamy ścieżkę i rozszerzenie
         geo_name = os.path.basename(geo_field)
+        print(f"geo_field:{geo_field}")
         geo_name, _ = os.path.splitext(geo_name)
+        print(f"geo_name:{geo_name}")
+
 
         quantity = find_in_section(sec, "ILOŚĆ")
         try:
@@ -117,6 +125,7 @@ def parse_pdf(file_path: str) -> Program:
         program_counts=program_counts,
         details=details
     )
+    print(program)
     return program
 
 
