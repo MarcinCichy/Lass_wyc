@@ -96,7 +96,8 @@ def parse_html(file_path: str) -> Program:
                         value = cells[1].get_text(strip=True)
                         if key == "NAZWA PLIKU GEO:":
                             value = ntpath.basename(value)
-                            detail_data["geo_file"] = value
+                            value_pure = ntpath.splitext(value)[0]
+                            detail_data["geo_file"] = value_pure
                         elif key == "ILOŚĆ:":
                             try:
                                 detail_data["quantity"] = int(value)

@@ -5,7 +5,6 @@ import os
 import tempfile
 from models import Program, Detail
 
-
 def parse_pdf(file_path: str) -> Program:
     """
     Parsuje plik PDF (stary lub nowy format) i zwraca obiekt Program.
@@ -19,16 +18,15 @@ def parse_pdf(file_path: str) -> Program:
 
     # Wyodrębnianie danych programu (analogicznie do HTML)
     program_name_full = find_field(full_text, "NAZWA PROGRAMU")
-    program_name = program_name_full[:-2]
+    program_name = program_name_full[:-2] if len(program_name_full) >= 2 else program_name_full
     material = find_field(full_text, r"MATERIAŁ \(ARKUSZ\)")
     machine_time_full = find_field(full_text, "CZAS MASZYNOWY")
-    machine_time =  machine_time_full[0:11]
+    machine_time = machine_time_full[0:11] if len(machine_time_full) >= 11 else machine_time_full
     try:
         program_counts = int(find_field(full_text, "ILOŚĆ PRZEBIEGÓW PROGRAMU"))
     except ValueError:
         program_counts = 0
-    # Grubość wyciągamy analogicznie – przyjmujemy, że materiał ma format np. "St37-30 (1.0038)"
-    # Użyjemy podobnej logiki jak w html_parser.py:
+    # Grubość – analogicznie do HTML, zakładamy format np. "St37-30 (1.0038)"
     material_sub = material[:10]
     try:
         minus_index = material_sub.index('-')
@@ -41,7 +39,9 @@ def parse_pdf(file_path: str) -> Program:
     except (ValueError, UnboundLocalError):
         thicknes = 0.0
 
-    # Wyodrębniamy tekst sekcji detali w zależności od formatu
+    ###### DETAILS SECTION
+
+    # W zależności od formatu PDF wybieramy fragment tekstu z danymi detali:
     if "Informacja o pojedynczych detalach/zleceniu" in full_text:
         details_text = full_text.split("Informacja o pojedynczych detalach/zleceniu", 1)[1]
     elif full_text.count("INFORMACJA O DETALU") >= 2:
@@ -50,32 +50,30 @@ def parse_pdf(file_path: str) -> Program:
     else:
         details_text = ""
 
-    # Rozdzielamy sekcje detali – zakładamy, że każdy detal zaczyna się od pojawienia się pola "NAZWA PLIKU GEO:"
+    # Rozdzielamy sekcje detali – zakładamy, że każda sekcja zaczyna się od markeru "NUMER CZĘŚCI:"
     detail_sections = re.split(r"NUMER CZĘŚCI:", details_text)
-    print(f"raw detail_sections:{detail_sections}")
-    #detail_sections = re.split(r"NAZWA PLIKU GEO:", details_text)
-    # Pierwszy element może zawierać dane nie należące do detali, więc pomijamy go
-    detail_sections = detail_sections[1:]
-    print(f"detail_sections:{detail_sections}")
+    detail_sections = detail_sections[1:]  # pomijamy pierwszy element
 
-    details = []
-    # Pobierz obrazy ze stron PDF, które zawierają sekcje detali.
-    # Przyjmujemy, że obrazy są uporządkowane – wyodrębniamy wszystkie obrazy z całego dokumentu
+    # Pobierz obrazy ze stron PDF zaczynając od pierwszej strony z markerem
     images = extract_all_detail_images(doc)
-    image_index = 1  # indeks obrazu do przypisania
+    # Jeśli liczba obrazów jest równa liczbie detali + 1, usuwamy ostatni (rysunek arkusza)
+    if len(images) == len(detail_sections) + 1:
+        images.pop()
+    # Dodatkowo – jeżeli pierwszy obraz pochodzi z tej samej strony, na której występuje pierwszy marker,
+    # zakładamy, że to logo i usuwamy je.
+    # (W naszej funkcji extract_all_detail_images będziemy zwracać informacje o stronie, więc możemy to sprawdzić)
+    # W tym przykładzie zmodyfikujemy funkcję tak, aby zwracała tylko ścieżki obrazów po odpowiedniej filtracji.
+
+    print(f"Obrazów: {len(images)}, Detali: {len(detail_sections)}")
+    details = []
+    image_index = 0
 
     for sec in detail_sections:
-        # Dla każdej sekcji próbujemy wyodrębnić pola:
-        # Ilość, WYMIARY, CZAS OBRÓBKI
-        # Używamy pomocniczej funkcji find_in_section
-        geo_field = sec.splitlines()[
-            0].strip()  # bo podział nastąpił po "NAZWA PLIKU GEO:"; pierwsza linia zawiera resztę tekstu
-        # Z geo_field wyciągamy tylko nazwę – usuwamy ścieżkę i rozszerzenie
-        geo_name = os.path.basename(geo_field)
-        print(f"geo_field:{geo_field}")
+        # Dla każdej sekcji wyodrębniamy pola: NAZWA PLIKU GEO, ILOŚĆ, WYMIARY, CZAS OBRÓBKI.
+        # Wyciągamy nazwę detalu – usuwamy ścieżkę i rozszerzenie
+        geo_name_full = find_in_section(sec, "NAZWA PLIKU GEO:")
+        geo_name = os.path.basename(geo_name_full)
         geo_name, _ = os.path.splitext(geo_name)
-        print(f"geo_name:{geo_name}")
-
 
         quantity = find_in_section(sec, "ILOŚĆ")
         try:
@@ -84,20 +82,15 @@ def parse_pdf(file_path: str) -> Program:
             quantity = 1
 
         dimensions = find_in_section(sec, "WYMIARY")
-        # Załóżmy, że wymiary są w formacie "60.000 x 78.000 mm"
-        # Możemy je zachować jako jeden ciąg – dalsze przetwarzanie może być w GUI
         cut_time_str = find_in_section(sec, "CZAS OBRÓBKI")
         try:
-            # Weź tylko pierwszą wartość (np. "0.12" z "0.12 min (PierceLine: 0.12 min)")
             cut_time = float(cut_time_str.split()[0])
         except (ValueError, IndexError):
             cut_time = 0.0
 
-        # Dla uproszczenia nie przetwarzamy cut_length ani weight – ustawiamy 0.0
         cut_length = 0.0
         weight = 0.0
 
-        # Pobieramy obraz dla tego detalu – o ile mamy jeszcze obrazy
         if image_index < len(images):
             image_path = images[image_index]
             image_index += 1
@@ -114,6 +107,7 @@ def parse_pdf(file_path: str) -> Program:
             image_path=image_path
         )
         details.append(detail)
+        print(f"Detail: {detail}")
 
     doc.close()
 
@@ -125,52 +119,59 @@ def parse_pdf(file_path: str) -> Program:
         program_counts=program_counts,
         details=details
     )
-    print(program)
+    print(f"Program: {program}")
     return program
-
 
 def find_field(text: str, label: str) -> str:
     """
     Wyszukuje wartość dla danego labela w tekście.
     """
-    pattern = re.compile(rf"{label}:\s*(.+)")
+    pattern = re.compile(rf"{label}:?\s*(.+)", re.IGNORECASE)
     match = pattern.search(text)
     return match.group(1).strip() if match else ""
-
 
 def find_in_section(section: str, label: str) -> str:
     """
     Wyszukuje wartość dla danego labela w sekcji tekstu.
     """
-    pattern = re.compile(rf"{label}:\s*(.+)")
+    pattern = re.compile(rf"{label}:?\s*(.+)", re.IGNORECASE)
     match = pattern.search(section)
     return match.group(1).strip() if match else ""
 
-
 def extract_all_detail_images(doc) -> list:
     """
-    Wyodrębnia obrazy z całego dokumentu PDF, które znajdują się w sekcjach detali.
-    Zakładamy, że obrazy te pojawiają się w kolejności odpowiadającej kolejności detali.
-    Obrazy zapisywane są do tymczasowych plików BMP.
+    Wyodrębnia obrazy ze stron dokumentu PDF, zaczynając od strony z pierwszym markerem detalu
+    aż do końca dokumentu. Zwraca listę ścieżek do obrazów (po usunięciu obrazu logo, jeśli wystąpi).
     """
-    images = []
+    first_marker_page = None
     for page in doc:
         page_text = page.get_text("text")
-        # Sprawdzamy, czy strona zawiera marker detalu
         if ("INFORMACJA O DETALU" in page_text) or ("Informacja o pojedynczych detalach/zleceniu" in page_text):
-            page_images = extract_page_images(doc, page.number)
-            images.extend(page_images)
-    return images
+            first_marker_page = page.number
+            break
 
+    images_with_page = []
+    if first_marker_page is not None:
+        for page in doc:
+            if page.number >= first_marker_page:
+                page_images = extract_page_images(doc, page.number)
+                # page_images zawiera listę krotek: (page_number, image_path)
+                images_with_page.extend(page_images)
+    # Usuń pierwszy obraz, jeśli pochodzi z first_marker_page (zakładamy, że to logo)
+    if images_with_page and images_with_page[0][0] == first_marker_page:
+        images_with_page.pop(0)
+    # Jeśli liczba obrazów wynosi liczba detali + 1, usuń ostatni obraz (rysunek całego arkusza)
+    # (Ta logika zostanie wykonana w parserze głównym)
+    return [img_path for (pg, img_path) in images_with_page]
 
 def extract_page_images(doc, page_number: int) -> list:
     """
     Wyodrębnia obrazy z danej strony PDF i zapisuje je do tymczasowych plików BMP.
-    Zwraca listę ścieżek do zapisanych obrazów.
+    Zwraca listę krotek: (page_number, image_path)
     """
     page = doc.load_page(page_number)
     image_info = page.get_images(full=True)
-    image_paths = []
+    image_tuples = []
     for img in image_info:
         xref = img[0]
         base_image = doc.extract_image(xref)
@@ -180,5 +181,5 @@ def extract_page_images(doc, page_number: int) -> list:
         image_path = os.path.join(temp_dir, image_filename)
         with open(image_path, "wb") as f:
             f.write(image_bytes)
-        image_paths.append(image_path)
-    return image_paths
+        image_tuples.append((page_number, image_path))
+    return image_tuples
