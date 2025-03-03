@@ -5,21 +5,13 @@ from pdf_utils import find_field, find_in_section, extract_all_detail_images
 
 
 def parse_pdf_new(doc, full_text: str) -> Program:
-    """
-    Nowa logika parsowania dla plików nowszego typu (np. "*_SetupPlan.pdf").
+    # Tymczasowy kod do wypisania numeracji wszystkich linii dokumentu
+    print("=== Numeracja linii dokumentu ===")
+    for i, line in enumerate(full_text.splitlines(), start=1):
+        print(f"{i}: {line}")
+    print("=== Koniec numeracji linii dokumentu ===")
 
-    Pobieramy:
-      1. Nazwę programu – jako pierwszą niepustą linię po nagłówku "Liczba detali: Liczba arkuszy:".
-      2. Ilość powtórzeń – z bloku po "Czas trwania" (drugi token w pierwszej linii po tym nagłówku).
-      3. Materiał i grubość – z bloku występującego po nagłówku "Arkusz blachy do obróbki, pakiet" i przed "Wymiary:".
-         Pierwsza linijka to materiał, a druga linijka (format: "3000,00 x 1500,00 x 3,00 mm") – grubość pobieramy z trzeciego fragmentu.
-      4. Dla detali, z bloku zaczynającego się od "Informacja o pojedynczych detalach/zleceniu":
-         - "Plik geo" – nazwa detalu,
-         - "Wymiary" – rozdzielamy na wymiar x i wymiar y,
-         - "Czas obróbki detalu" – jako czas cięcia,
-         - "Szt." – jako ilość.
-         Do każdego detalu dołączamy też materiał i grubość pobrane wcześniej.
-    """
+    # Pozostała część funkcji...
     # --- 1. Nazwa programu
     prog_name_match = re.search(r"Liczba detali:\s*Liczba arkuszy:\s*\n\s*(\S+)", full_text)
     if prog_name_match:
@@ -143,3 +135,4 @@ def parse_pdf_new(doc, full_text: str) -> Program:
     )
     print("Program (nowy PDF):", program)
     return program
+
