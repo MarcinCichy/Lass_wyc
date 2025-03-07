@@ -1,3 +1,4 @@
+import json
 import re
 from models import Program, Detail
 from pdf_utils import find_field, find_in_section, extract_all_detail_images
@@ -5,37 +6,53 @@ from pdf_utils import find_field, find_in_section, extract_all_detail_images
 
 def parse_pdf_new(doc, full_text: str) -> Program:
     try:
-        # Debug – wypisanie numeracji linii dokumentu
-        print("=== Numeracja linii dokumentu ===")
-        for i, line in enumerate(full_text.splitlines(), start=1):
+        # Pobieramy strukturę dokumentu w formacie dict dla każdej strony
+        combined_text = ""
+        for page in doc:
+            page_dict = page.get_text("dict")
+            # Iterujemy po blokach na stronie i łączymy tekst
+            for block in page_dict.get("blocks", []):
+                # W przypadku dict, każdy blok zawiera listę linii ("lines")
+                if "lines" in block:
+                    for line in block["lines"]:
+                        for span in line["spans"]:
+                            combined_text += span["text"] + " "
+                        combined_text += "\n"
+                else:
+                    # Jeśli blok zawiera klucz "text", używamy go
+                    if "text" in block:
+                        combined_text += block["text"] + "\n"
+
+        # Debug – wypisanie numeracji linii z połączonego tekstu
+        print("=== Numeracja linii dokumentu (połączony tekst) ===")
+        for i, line in enumerate(combined_text.splitlines(), start=1):
             print(f"{i}: {line}")
         print("=== Koniec numeracji linii dokumentu ===")
 
-        # --- 1. Nazwa programu
-        prog_name_match = re.search(r"Liczba detali:\s*Liczba arkuszy:\s*\n\s*(\S+)", full_text,
+        # --- 1. Nazwa programu – szukamy w połączonym tekście
+        prog_name_match = re.search(r"Liczba detali:\s*Liczba arkuszy:\s*\n\s*(\S+)", combined_text,
                                     re.IGNORECASE | re.MULTILINE)
         if prog_name_match:
             program_name = prog_name_match.group(1).strip()
         else:
             program_name = ""
 
-        # --- 2. Ilość powtórzeń programu – pobieramy z sekcji "Czas trwania"
-        rep_match = re.search(r"Czas\s+trwania\s*\n\s*(\S+)\s+(\d+)", full_text, re.IGNORECASE | re.MULTILINE)
+        # --- 2. Ilość powtórzeń programu – z sekcji "Czas trwania"
+        rep_match = re.search(r"Czas\s+trwania\s*\n\s*(\S+)\s+(\d+)", combined_text, re.IGNORECASE | re.MULTILINE)
         if rep_match:
             program_counts = int(rep_match.group(2))
         else:
             program_counts = 0
 
-        # --- 3. Rodzaj materiału – szukamy ciągu odpowiadającego schematowi:
-        # np. "ST0M0300----3000x1500 (1.0038)"
-        mat_match = re.search(r"[A-Z0-9]+----[0-9x]+\s*\((\d+\.\d+)\)", full_text, re.IGNORECASE)
-        if mat_match:
-            material = mat_match.group(1).strip()
+        # --- 3. Rodzaj materiału – wyszukujemy wzorzec np. "ST0M0300----3000x1500 (1.0038)"
+        material_match = re.search(r"[A-Z0-9]+----[0-9x]+\s*\((\d+\.\d+)\)", combined_text, re.IGNORECASE)
+        if material_match:
+            material = material_match.group(1).strip()
         else:
             material = ""
 
         # --- 3b. Grubość materiału – pobieramy z linii po "Wymiary:"
-        dims_match = re.search(r"Wymiary:\s*\n\s*(.+)", full_text, re.IGNORECASE | re.MULTILINE)
+        dims_match = re.search(r"Wymiary:\s*\n\s*(.+)", combined_text, re.IGNORECASE | re.MULTILINE)
         if dims_match:
             dims_full = dims_match.group(1).strip()  # np. "3000,00 x 1500,00 x 3,00 mm"
             parts = dims_full.split("x")
@@ -51,8 +68,8 @@ def parse_pdf_new(doc, full_text: str) -> Program:
         else:
             thicknes = 0.0
 
-        # --- 4. Czas trwania maszyny – usuwamy część w nawiasach kwadratowych, np. "[h:min:s]"
-        machine_time = find_field(full_text, "Czas trwania")
+        # --- 4. Czas trwania maszyny – pobieramy z pola "Czas trwania" i usuwamy fragment w nawiasach kwadratowych
+        machine_time = find_field(combined_text, "Czas trwania")
         machine_time = re.sub(r"\s*\[.*\]", "", machine_time).strip()
 
         print("Nowy PDF:")
@@ -63,8 +80,8 @@ def parse_pdf_new(doc, full_text: str) -> Program:
         print("5. GRUBOŚĆ:", thicknes)
 
         # --- 5. Parsowanie sekcji detali
-        if "Informacja o pojedynczych detalach/zleceniu" in full_text:
-            detail_block = full_text.split("Informacja o pojedynczych detalach/zleceniu", 1)[1].strip()
+        if "Informacja o pojedynczych detalach/zleceniu" in combined_text:
+            detail_block = combined_text.split("Informacja o pojedynczych detalach/zleceniu", 1)[1].strip()
         else:
             detail_block = ""
 
@@ -127,16 +144,16 @@ def parse_pdf_new(doc, full_text: str) -> Program:
             )
             details.append(detail)
 
-        program = Program(
+        prog = Program(
             name=program_name,
-            material=material,  # rodzaj materiału
+            material=material,
             thicknes=thicknes,
             machine_time=machine_time,
             program_counts=program_counts,
             details=details
         )
-        print("Program (nowy PDF):", program)
-        return program
+        print("Program (nowy PDF):", prog)
+        return prog
 
     except Exception as e:
         print("Wystąpił błąd w parse_pdf_new:", e)
