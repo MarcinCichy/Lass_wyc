@@ -22,7 +22,7 @@ def parse_pdf_new(doc, full_text: str) -> Program:
                     # Jeśli blok zawiera klucz "text", używamy go
                     if "text" in block:
                         combined_text += block["text"] + "\n"
-
+        #print(f"combined_text:\n{combined_text}")
         # Debug – wypisanie numeracji linii z połączonego tekstu
         print("=== Numeracja linii dokumentu (połączony tekst) ===")
         for i, line in enumerate(combined_text.splitlines(), start=1):
@@ -52,19 +52,14 @@ def parse_pdf_new(doc, full_text: str) -> Program:
             material = ""
 
         # --- 3b. Grubość materiału – pobieramy z linii po "Wymiary:"
-        dims_match = re.search(r"Wymiary:\s*\n\s*(.+)", combined_text, re.IGNORECASE | re.MULTILINE)
-        if dims_match:
-            dims_full = dims_match.group(1).strip()  # np. "3000,00 x 1500,00 x 3,00 mm"
-            parts = dims_full.split("x")
-            if parts:
-                # Pobieramy ostatni fragment, usuwamy jednostki, zamieniamy przecinek na kropkę
-                last_part = parts[-1].strip().split()[0].replace(",", ".")
-                try:
-                    thicknes = abs(float(last_part))
-                except Exception:
-                    thicknes = 0.0
-            else:
-                thicknes = 0.0
+        wymiary_pos = combined_text.find("Wymiary:")
+        if wymiary_pos != -1:
+            # Pobieramy fragment tekstu od słowa "Wymiary:" do końca linii
+            # Można też ograniczyć do kilku linii, jeśli wiesz, że interesują nas tylko dane z danego bloku
+            substring = combined_text[wymiary_pos:].splitlines()[12]
+            tokens = substring.split()
+            thick_str = tokens[-2].replace(",", ".")
+            thicknes = abs(float(thick_str))
         else:
             thicknes = 0.0
 
@@ -82,10 +77,12 @@ def parse_pdf_new(doc, full_text: str) -> Program:
         # --- 5. Parsowanie sekcji detali
         if "Informacja o pojedynczych detalach/zleceniu" in combined_text:
             detail_block = combined_text.split("Informacja o pojedynczych detalach/zleceniu", 1)[1].strip()
+            # print(f"detail_block:\n{detail_block}")
         else:
             detail_block = ""
 
         detail_parts = re.split(r"\n\s*\n", detail_block)
+        print(f"detail_parts:\n{detail_parts}")
         if len(detail_parts) < 4:
             print("Nie udało się poprawnie podzielić sekcji detali.")
             details = []
