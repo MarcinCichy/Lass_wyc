@@ -1,0 +1,27 @@
+/* Ukrycie elementu input do przesyłania plików */
+#fileInput {
+  display: none;
+}
+
+/* Początkowo ukrywamy elementy ładowania i danych programu */
+#loading,
+#programData {
+  display: none;
+}
+
+/* Styl przycisku zmiany motywu - wycentrowanie ikony */
+#themeToggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 20px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
