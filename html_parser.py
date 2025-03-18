@@ -82,10 +82,12 @@ def parse_html(file_path: str) -> Program:
                     detail_data = {}
                     # Pobieramy obrazek z pierwszej komórki, jeśli jest dostępny
                     img_tag = tds[0].find("img")
+                    img_tag = tds[0].find("img")
                     if img_tag and img_tag.has_attr("src"):
                         image_src = img_tag["src"].strip()
                         # Budujemy pełną ścieżkę do pliku obrazu – zakładamy, że obrazek znajduje się w tym samym katalogu co plik HTML
                         original_image_path = os.path.join(os.path.dirname(file_path), image_src)
+                        print(f"ORG IMG PAT = {original_image_path}")
                         if os.path.exists(original_image_path):
                             image_path = copy_image_to_static(original_image_path)
                         else:

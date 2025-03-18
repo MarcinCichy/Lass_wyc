@@ -10,12 +10,14 @@ def copy_image_to_static(image_path: str) -> str:
     dest_dir = os.path.join(os.getcwd(), 'static', 'images')
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
+    print(f"image path = {image_path}")
     base_name = os.path.basename(image_path)
     # Generujemy unikalny identyfikator i wstawiamy go przed rozszerzenie
     unique_id = uuid.uuid4().hex
     name, ext = os.path.splitext(base_name)
     new_name = f"{name}_{unique_id}{ext}"
     dest_path = os.path.join(dest_dir, new_name)
+    print(f"dest path = {dest_path}")
     try:
         shutil.copy(image_path, dest_path)
         print(f"Skopiowano obrazek z '{image_path}' do '{dest_path}'")
