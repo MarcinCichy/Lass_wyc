@@ -1,7 +1,8 @@
-# old_pdf_file_parser.py
 import re
 from models import Program, Detail
 from pdf_utils import find_field, find_in_section, extract_all_detail_images, extract_detail_name, find_multiline_field
+from utils import copy_image_to_static
+
 
 def parse_pdf_old(doc, full_text: str) -> Program:
     """
@@ -71,8 +72,9 @@ def parse_pdf_old(doc, full_text: str) -> Program:
         weight = 0.0
 
         if image_index < len(images):
-            image_path = images[image_index]
+            original_image_path = images[image_index]
             image_index += 1
+            image_path = copy_image_to_static(original_image_path)
         else:
             image_path = None
 

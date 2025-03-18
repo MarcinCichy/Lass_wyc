@@ -2,7 +2,7 @@ import os
 import ntpath
 from bs4 import BeautifulSoup, Comment
 from models import Program, Detail
-
+from utils import copy_image_to_static  # Funkcja ta powinna znajdować się w pliku utils.py
 
 def parse_html(file_path: str) -> Program:
     """Parsuje plik HTML z danymi programu laserowego i zwraca obiekt Program."""
@@ -77,14 +77,19 @@ def parse_html(file_path: str) -> Program:
             i = 0
             while i < len(rows):
                 tds = rows[i].find_all('td')
-                # Sprawdzamy czy w drugim td znajduje się napis "NUMER CZĘŚCI:" – oznacza to początek bloku detalu
+                # Sprawdzamy, czy w drugim <td> znajduje się napis "NUMER CZĘŚCI:" – oznacza to początek bloku detalu
                 if len(tds) >= 2 and "NUMER CZĘŚCI:" in tds[1].get_text(strip=True):
                     detail_data = {}
                     # Pobieramy obrazek z pierwszej komórki, jeśli jest dostępny
                     img_tag = tds[0].find("img")
                     if img_tag and img_tag.has_attr("src"):
                         image_src = img_tag["src"].strip()
-                        image_path = os.path.join(os.path.dirname(file_path), image_src)
+                        # Budujemy pełną ścieżkę do pliku obrazu – zakładamy, że obrazek znajduje się w tym samym katalogu co plik HTML
+                        original_image_path = os.path.join(os.path.dirname(file_path), image_src)
+                        if os.path.exists(original_image_path):
+                            image_path = copy_image_to_static(original_image_path)
+                        else:
+                            image_path = None
                     else:
                         image_path = None
                     # Parsujemy kolejne wiersze bloku detalu (przyjmujemy, że blok ma około 15 wierszy)

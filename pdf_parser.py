@@ -5,6 +5,7 @@ import old_pdf_file_parser
 import new_pdf_file_parser
 from pdf_utils import *  # Import funkcji pomocniczych
 
+
 def parse_pdf(file_path: str) -> Program:
     """
     Parsuje plik PDF – automatycznie wykrywa, czy jest to stary czy nowy format,

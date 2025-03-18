@@ -3,13 +3,24 @@
   display: none;
 }
 
-/* Początkowo ukrywamy elementy ładowania i danych programu */
-#loading,
-#programData {
+/* Ukrycie wskaźnika ładowania przy starcie */
+#loading {
   display: none;
 }
 
-/* Styl przycisku zmiany motywu - wycentrowanie ikony */
+/* Ustawienie tabeli, aby jej szerokość była 100% oraz kolumny automatycznie dopasowywały się do zawartości */
+table {
+  table-layout: auto;
+  width: 100%;
+}
+
+/* Dodatkowe style – elementy rozciągnięte do pełnej szerokości, zaczynające się od lewej */
+.container-fluid {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* Styl przycisku przełączania motywu – wycentrowanie ikony */
 #themeToggle {
   position: fixed;
   top: 20px;

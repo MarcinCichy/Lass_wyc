@@ -2,64 +2,124 @@
 <html lang="pl">
   <head>
     <meta charset="utf-8">
-    <title>LassSup Web - Wybór pliku</title>
-    <!-- Ładujemy domyślnie ciemny motyw (Darkly) -->
+    <title>LassSup Web - Wczytywanie pliku</title>
+    <!-- Domyślnie ładujemy ciemny motyw (Darkly) -->
     <link id="themeStylesheet" rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/darkly/bootstrap.min.css">
-    <!-- Dołączamy zewnętrzny plik CSS -->
+    <!-- Zewnętrzny plik CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
+    <!-- Plugin colResizable do zmiany szerokości kolumn -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/colresizable/1.6/colResizable-1.6.min.js"></script>
   </head>
   <body>
-    <!-- Przycisk zmiany motywu -->
+    <!-- Przycisk przełączania motywu (w prawym górnym rogu) -->
     <button id="themeToggle" class="btn btn-secondary">
       <span id="themeIcon">☀</span>
     </button>
 
-    <div class="container my-4">
-      <h1 class="mb-4">LassSup – Wersja Web</h1>
-      <form id="uploadForm" enctype="multipart/form-data">
-        <div class="form-group">
-          <!-- Ukryty input do przesyłania plików -->
+    <div class="container-fluid mt-3">
+      <!-- Wiersz wyboru pliku -->
+      <div class="row mb-3">
+        <div class="col">
           <input type="file" id="fileInput" name="file" accept=".html, .pdf">
-          <!-- Przycisk otwierający okno dialogowe wyboru pliku -->
-          <button type="button" id="chooseFileButton" class="btn btn-secondary">Wybierz plik</button>
-          <!-- Element wyświetlający nazwę wybranego pliku -->
+          <button type="button" id="chooseFileButton" class="btn btn-secondary">Wczytaj plik</button>
           <span id="fileNameDisplay" class="ml-2"></span>
         </div>
-        <button type="submit" class="btn btn-primary">Wczytaj plik</button>
-      </form>
-
-      <div id="loading" class="mt-4">
-        <div class="spinner-border" role="status">
-          <span class="sr-only">Ładowanie...</span>
-        </div>
-        <span>Przetwarzanie pliku, proszę czekać...</span>
       </div>
-
-      <div id="programData" class="mt-4">
-        <!-- Miejsce, gdzie będą wyświetlane dane przetworzonego pliku -->
+      <!-- Wiersz wyświetlający ścieżkę programu -->
+      <div class="row mb-3">
+        <div class="col">
+          <strong>Ścieżka programu:</strong> <span id="programPath"></span>
+        </div>
+      </div>
+      <!-- Wiersz z danymi programu i wyceną -->
+      <div class="row mb-3">
+        <!-- Dane programu -->
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">Dane programu:</div>
+            <div class="card-body">
+              <p><strong>Nazwa programu:</strong> <span id="programName"></span></p>
+              <p><strong>Materiał:</strong> <span id="programMaterial"></span></p>
+              <p><strong>Grubość:</strong> <span id="programThicknes"></span> mm</p>
+              <p><strong>Czas trwania programu:</strong> <span id="programTime"></span></p>
+              <p><strong>Ilość powtórzeń:</strong> <span id="programCounts"></span></p>
+            </div>
+          </div>
+        </div>
+        <!-- Wycena (na razie bez danych) -->
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">Wycena:</div>
+            <div class="card-body">
+              <p>Brak danych</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Tabela detali -->
+      <div class="row mb-3">
+        <div class="col">
+          <div class="table-responsive">
+            <table id="detailsTable" class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Rysunek</th>
+                  <th>Nazwa detalu</th>
+                  <th>Materiał</th>
+                  <th>Grubość</th>
+                  <th>Wymiar X</th>
+                  <th>Wymiar Y</th>
+                  <th>Czas cięcia</th>
+                  <th>Ilość</th>
+                  <th>Koszt cięcia</th>
+                  <th>Koszt materiału</th>
+                  <th>Koszt detalu</th>
+                  <th>Całkowity koszt</th>
+                </tr>
+              </thead>
+              <tbody id="detailsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- Wiersz z informacją o ładowaniu -->
+      <div id="loading" class="row">
+        <div class="col">
+          <div class="spinner-border" role="status">
+            <span class="sr-only">Ładowanie...</span>
+          </div>
+          <span>Przetwarzanie pliku, proszę czekać...</span>
+        </div>
       </div>
     </div>
 
     <script>
       $(document).ready(function() {
-        // Obsługa przycisku wyboru pliku
+        // Ukrywamy wskaźnik ładowania przy starcie
+        $("#loading").hide();
+
+        // Obsługa przycisku wyboru pliku: otwiera ukryty input
         $("#chooseFileButton").click(function(){
           $("#fileInput").click();
         });
 
-        // Po wybraniu pliku, wyświetlamy jego nazwę
+        // Po wybraniu pliku – wyświetlamy jego nazwę i wysyłamy do serwera
         $("#fileInput").change(function(){
           var fileName = $(this).val().split("\\").pop();
           $("#fileNameDisplay").text(fileName);
-        });
 
-        // Obsługa przesłania formularza
-        $("#uploadForm").submit(function(e) {
-          e.preventDefault();
-          var formData = new FormData(this);
+          var file = $(this)[0].files[0];
+          if (!file) return;
+
+          var formData = new FormData();
+          formData.append("file", file);
+
           $("#loading").show();
-          $("#programData").hide();
+
           $.ajax({
             url: '/upload',
             type: 'POST',
@@ -68,8 +128,43 @@
             processData: false,
             success: function(response) {
               $("#loading").hide();
-              $("#programData").show();
-              // Tutaj możesz rozwinąć kod, aby wyświetlić dane przetworzonego pliku
+              // Ustawiamy ścieżkę jako nazwę pliku
+              $("#programPath").text(file.name);
+              // Uzupełniamy dane programu
+              $("#programName").text(response.name);
+              $("#programMaterial").text(response.material);
+              $("#programThicknes").text(response.thicknes);
+              $("#programTime").text(response.machine_time);
+              $("#programCounts").text(response.program_counts);
+
+              // Uzupełniamy tabelę detali
+              var tbody = $("#detailsTableBody");
+              tbody.empty();
+              response.details.forEach(function(detail) {
+                var row = "<tr>";
+                // Rysunek: UWAGA – upewnij się, że parser ustawia detail.image_path jako URL względny,
+                // np. "static/images/nazwa.jpg", aby obrazek był poprawnie serwowany.
+                if(detail.image_path) {
+                  row += "<td><img src='" + detail.image_path + "' alt='Rysunek' style='max-width:100px;'/></td>";
+                } else {
+                  row += "<td></td>";
+                }
+                row += "<td>" + detail.name + "</td>";
+                row += "<td>" + response.material + "</td>";
+                row += "<td>" + response.thicknes + "</td>";
+                row += "<td>" + detail.dim_x + "</td>";
+                row += "<td>" + detail.dim_y + "</td>";
+                row += "<td>" + detail.cut_time + "</td>";
+                row += "<td>" + detail.quantity + "</td>";
+                row += "<td>" + detail.cutting_cost + "</td>";
+                row += "<td>" + detail.material_cost + "</td>";
+                row += "<td>" + detail.total_cost + "</td>";
+                row += "<td>" + detail.total_cost_quantity + "</td>";
+                row += "</tr>";
+                tbody.append(row);
+              });
+              // Inicjalizacja pluginu colResizable, aby umożliwić zmianę szerokości kolumn
+              $("#detailsTable").colResizable({ liveDrag: true });
             },
             error: function(xhr) {
               $("#loading").hide();
@@ -79,19 +174,17 @@
         });
 
         // Przełącznik motywu
-        var darkTheme = true; // Początkowo ciemny motyw
+        var darkTheme = true; // domyślnie ciemny motyw
         $("#themeToggle").click(function(){
           if(darkTheme) {
-            // Aktualnie ciemny motyw: przełączamy na jasny
+            // Przełączamy na jasny motyw
             $("#themeStylesheet").attr("href", "https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/flatly/bootstrap.min.css");
-            // W jasnym stylu przycisk ma wyświetlać ikonę księżyca
-            $("#themeIcon").text("☾");
+            $("#themeIcon").text("☾"); // ikona księżyca dla jasnego stylu
             darkTheme = false;
           } else {
-            // Aktualnie jasny motyw: przełączamy na ciemny
+            // Przełączamy na ciemny motyw
             $("#themeStylesheet").attr("href", "https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/darkly/bootstrap.min.css");
-            // W ciemnym stylu przycisk ma wyświetlać ikonę słoneczka
-            $("#themeIcon").text("☀");
+            $("#themeIcon").text("☀"); // ikona słoneczka dla ciemnego stylu
             darkTheme = true;
           }
         });

@@ -1,44 +1,48 @@
 import re
 from models import Program, Detail
 from pdf_utils import find_field, find_in_section, extract_all_detail_images
+from utils import copy_image_to_static
 
 
 def parse_detail_section(section_text: str) -> Detail:
     """
-    Parsuje pojedynczy blok zawierający informacje o detalu.
-    Oczekujemy, że w danym bloku pojawią się etykiety:
-      - "Plik geo:" – nazwa detalu,
-      - "Wymiary:" – wymiary detalu (np. "60,00 x 78,00 mm"),
-      - "Szt.:" – ilość detalu,
-      - "Czas obróbki detalu:" – czas cięcia w formacie HH:MM:SS (konwertowany na sekundy).
+    Parsuje pojedynczy blok tekstu zawierający informacje o detalu.
+    Oczekujemy, że w bloku występują etykiety:
+      - "Plik geo:" – zawiera nazwę pliku (z rozszerzeniem .geo), którą usuwamy,
+      - "Wymiary:" – zawiera wymiary detalu (np. "60,00 x 78,00 mm"),
+      - "Szt.:" – ilość,
+      - "Czas obróbki detalu:" – czas w formacie HH:MM:SS, konwertowany na sekundy.
     Jeśli etykiety nie występują, używamy domyślnych wartości.
     """
     section_text = section_text.strip()
 
-    # Nazwa detalu
+    # Wyodrębnianie nazwy detalu z "Plik geo:" i usuwanie rozszerzenia .geo
     det_name_match = re.search(r"Plik\s*geo:\s*(.+)", section_text, re.IGNORECASE)
     det_name = det_name_match.group(1).strip() if det_name_match else ""
+    if det_name.lower().endswith(".geo"):
+        det_name = det_name[:-4].strip()
 
-    # Wymiary
+    # Wyodrębnianie wymiarów z "Wymiary:"
     dims_match = re.search(r"Wymiary:\s*(.+)", section_text, re.IGNORECASE)
-    dims_str = dims_match.group(1).strip() if dims_match else ""
-    if "x" in dims_str:
-        dims_parts = dims_str.split("x")
+    dims_str_raw = dims_match.group(1).strip() if dims_match else ""
+    # Przykład: "60,00 x 78,00 mm"
+    dim_x, dim_y = "", ""
+    if "x" in dims_str_raw:
+        dims_parts = dims_str_raw.split("x")
         dim_x = dims_parts[0].strip()
-        # Przyjmujemy, że wymiar Y to pierwszy token drugiej części
         dim_y = dims_parts[1].strip().split()[0]
     else:
-        dim_x = dims_str
-        dim_y = ""
+        dim_x = dims_str_raw
+    dimensions = f"{dim_x} x {dim_y}" if dim_x and dim_y else dims_str_raw
 
-    # Ilość – etykieta "Szt.:"
+    # Wyodrębnianie ilości (Szt.:)
     qty_match = re.search(r"Szt\.:\s*(\d+)", section_text, re.IGNORECASE)
     try:
         quantity = int(qty_match.group(1).strip()) if qty_match else 1
     except Exception:
         quantity = 1
 
-    # Czas obróbki – etykieta "Czas obróbki detalu:" w formacie HH:MM:SS, konwertowany na sekundy
+    # Wyodrębnianie czasu obróbki detalu – etykieta "Czas obróbki detalu:" w formacie HH:MM:SS
     time_match = re.search(r"Czas\s*obróbki\s*detalu:\s*([\d:]+)", section_text, re.IGNORECASE)
     if time_match:
         time_str = time_match.group(1).strip()
@@ -53,17 +57,16 @@ def parse_detail_section(section_text: str) -> Detail:
     return Detail(
         name=det_name,
         quantity=quantity,
-        dimensions=dims_str,  # lub f"{dim_x} x {dim_y}"
+        dimensions=dimensions,
         cut_time=cut_time,
         cut_length=0.0,
         weight=0.0,
         image_path=None
     )
 
-
 def parse_pdf_new(doc, full_text: str) -> Program:
     try:
-        # Łączymy tekst ze wszystkich stron przy użyciu get_text("dict")
+        # Łączymy tekst ze wszystkich stron korzystając z get_text("dict")
         combined_text = ""
         for page in doc:
             page_dict = page.get_text("dict")
@@ -76,7 +79,7 @@ def parse_pdf_new(doc, full_text: str) -> Program:
                 elif "text" in block:
                     combined_text += block["text"] + "\n"
 
-        # --- Dane programu (jak wcześniej)
+        # --- Dane programu:
         prog_name_match = re.search(r"Liczba detali:\s*Liczba arkuszy:\s*\n\s*(\S+)", combined_text,
                                     re.IGNORECASE | re.MULTILINE)
         program_name = prog_name_match.group(1).strip() if prog_name_match else ""
@@ -87,6 +90,7 @@ def parse_pdf_new(doc, full_text: str) -> Program:
         material_match = re.search(r"[A-Z0-9]+----[0-9x]+\s*\((\d+\.\d+)\)", combined_text, re.IGNORECASE)
         material = material_match.group(1).strip() if material_match else ""
 
+        # Grubość materiału – pobieramy z linii po "Wymiary:"
         wymiary_pos = combined_text.find("Wymiary:")
         if wymiary_pos != -1:
             try:
@@ -109,9 +113,7 @@ def parse_pdf_new(doc, full_text: str) -> Program:
         print("4. Ilość powtórzeń programu:", program_counts)
         print("5. GRUBOŚĆ:", thicknes)
 
-        # --- Parsowanie sekcji detali
-        # Wyodrębniamy blok detali – ograniczamy go od "Informacja o pojedynczych detalach/zleceniu"
-        # do "Zlecenia wykonania" (bo dalszy tekst nie dotyczy detali)
+        # --- Parsowanie sekcji detali:
         if "Informacja o pojedynczych detalach/zleceniu" in combined_text:
             detail_block = combined_text.split("Informacja o pojedynczych detalach/zleceniu", 1)[1].strip()
             if "Zlecenia wykonania" in detail_block:
@@ -122,17 +124,12 @@ def parse_pdf_new(doc, full_text: str) -> Program:
         print("Detail block (wycięty):")
         print(detail_block)
 
-        # Dzielenie bloku detali – zakładamy, że każdy detal zaczyna się od linii, która (opcjonalnie)
-        # zaczyna się od "#" i zawiera "Nr czesci:" lub "Nr części:".
-        # Używamy wzorca, który dopasowuje początek linii (opcjonalne "#") oraz frazę.
         detail_sections = re.split(r"(?im)^(?:#\s*)?Nr\s*(?:czesci|części):", detail_block)
-        # Pierwszy element może być pusty lub zawierać nagłówki – pomijamy go, jeśli jest pusty.
         detail_sections = [sec.strip() for sec in detail_sections if sec.strip()]
         print("Found", len(detail_sections), "detail sections")
 
         details = []
         for sec in detail_sections:
-            # Jeśli w sekcji występuje oczekiwana etykieta, np. "Plik geo:" – uznajemy to za sekcję detalu
             if "Plik geo:" in sec:
                 det = parse_detail_section(sec)
                 details.append(det)
@@ -141,7 +138,7 @@ def parse_pdf_new(doc, full_text: str) -> Program:
         images = extract_all_detail_images(doc)
         for i, det in enumerate(details):
             if i < len(images):
-                det.image_path = images[i]
+                det.image_path = copy_image_to_static(images[i])
 
         prog = Program(
             name=program_name,
