@@ -6,56 +6,50 @@ from utils import copy_image_to_static
 
 def parse_detail_section(section_text: str) -> Detail:
     """
-    Parsuje pojedynczy blok tekstu zawierający informacje o detalu.
-    Oczekujemy, że w bloku występują etykiety:
-      - "Plik geo:" – zawiera nazwę pliku (z rozszerzeniem .geo), którą usuwamy,
-      - "Wymiary:" – zawiera wymiary detalu (np. "60,00 x 78,00 mm"),
-      - "Szt.:" – ilość,
-      - "Czas obróbki detalu:" – czas w formacie HH:MM:SS, konwertowany na sekundy.
-    Jeśli etykiety nie występują, używamy domyślnych wartości.
+    Parsuje blok tekstu z informacjami o detalu.
+    Wyszukuje:
+      - nazwę pliku geo – przyjmujemy, że jest to ostatni ciąg kończący się na ".geo",
+      - wymiary w formacie "60,00 x 78,00 mm",
+      - ilość (Szt.:) – pierwszą liczbę po etykiecie "Szt.:",
+      - czas obróbki detalu w formacie HH:MM:SS.
+    Jeśli któraś wartość nie zostanie znaleziona, stosujemy wartość domyślną.
     """
-    section_text = section_text.strip()
+    text = section_text.strip()
 
-    # Wyodrębnianie nazwy detalu z "Plik geo:" i usuwanie rozszerzenia .geo
-    det_name_match = re.search(r"Plik\s*geo:\s*(.+)", section_text, re.IGNORECASE)
-    det_name = det_name_match.group(1).strip() if det_name_match else ""
-    if det_name.lower().endswith(".geo"):
-        det_name = det_name[:-4].strip()
+    # Szukamy ciągu zakończonego ".geo" – zakładamy, że taki ciąg występuje w bloku i jest ostatni
+    geo_matches = re.findall(r'([\w\s\-\_]+\.geo)', text, re.IGNORECASE)
+    geo_file = geo_matches[-1].strip() if geo_matches else ""
+    # Usuń rozszerzenie .geo, jeśli jest
+    if geo_file.lower().endswith(".geo"):
+        geo_file = geo_file[:-4].strip()
 
-    # Wyodrębnianie wymiarów z "Wymiary:"
-    dims_match = re.search(r"Wymiary:\s*(.+)", section_text, re.IGNORECASE)
-    dims_str_raw = dims_match.group(1).strip() if dims_match else ""
-    # Przykład: "60,00 x 78,00 mm"
-    dim_x, dim_y = "", ""
-    if "x" in dims_str_raw:
-        dims_parts = dims_str_raw.split("x")
-        dim_x = dims_parts[0].strip()
-        dim_y = dims_parts[1].strip().split()[0]
-    else:
-        dim_x = dims_str_raw
-    dimensions = f"{dim_x} x {dim_y}" if dim_x and dim_y else dims_str_raw
+    # Szukamy wymiarów – wzór: liczba, przecinek, liczba, spacja, x, spacja, liczba, przecinek, liczba, spacja, mm
+    dims_match = re.search(r'(\d+,\d+\s*x\s*\d+,\d+\s*mm)', text, re.IGNORECASE)
+    dimensions = dims_match.group(1).strip() if dims_match else ""
 
-    # Wyodrębnianie ilości (Szt.:)
-    qty_match = re.search(r"Szt\.:\s*(\d+)", section_text, re.IGNORECASE)
+    # Szukamy ilości – próbujemy znaleźć liczbę po etykiecie "Szt.:" (przyjmujemy, że etykieta i wartość mogą być oddzielone znakiem nowej linii)
+    qty_match = re.search(r'Szt\.:\s*(\d+)', text, re.IGNORECASE)
+    if not qty_match:
+        # Alternatywnie, szukamy pierwszej liczby, która pojawia się na osobnej linii, która może być ilością
+        qty_match = re.search(r'^\s*(\d+)\s*$', text, re.MULTILINE)
     try:
         quantity = int(qty_match.group(1).strip()) if qty_match else 1
     except Exception:
         quantity = 1
 
-    # Wyodrębnianie czasu obróbki detalu – etykieta "Czas obróbki detalu:" w formacie HH:MM:SS
-    time_match = re.search(r"Czas\s*obróbki\s*detalu:\s*([\d:]+)", section_text, re.IGNORECASE)
+    # Szukamy czasu obróbki – wzór HH:MM:SS
+    time_match = re.search(r'(\d{2}:\d{2}:\d{2})', text)
+    cut_time = 0
     if time_match:
-        time_str = time_match.group(1).strip()
+        time_str = time_match.group(1)
         try:
             h, m, s = time_str.split(":")
             cut_time = int(h) * 3600 + int(m) * 60 + int(s)
         except Exception:
             cut_time = 0
-    else:
-        cut_time = 0
 
     return Detail(
-        name=det_name,
+        name=geo_file,
         quantity=quantity,
         dimensions=dimensions,
         cut_time=cut_time,
@@ -63,6 +57,7 @@ def parse_detail_section(section_text: str) -> Detail:
         weight=0.0,
         image_path=None
     )
+
 
 def parse_pdf_new(doc, full_text: str) -> Program:
     try:
