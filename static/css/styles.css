@@ -36,3 +36,35 @@ table {
   align-items: center;
   justify-content: center;
 }
+/* ============================================= */
+input[type="checkbox"].detailCheckbox {
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+/* Styl checkboxa, gdy jest zaznaczony */
+input[type="checkbox"].detailCheckbox:checked {
+  background-color: #555;
+  border: 1px solid #333;
+}
+
+/* Dodajemy "ptaszek" przy zaznaczonym checkboxie */
+input[type="checkbox"].detailCheckbox:checked::after {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  position: relative;
+  top: 2px;
+  left: 5px;
+}
