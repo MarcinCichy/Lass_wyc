@@ -7,37 +7,38 @@ from utils import copy_image_to_static
 def parse_detail_section(section_text: str) -> Detail:
     """
     Parsuje blok tekstu z informacjami o detalu.
-    Wyszukuje:
-      - nazwę pliku geo – przyjmujemy, że jest to ostatni ciąg kończący się na ".geo",
-      - wymiary w formacie "60,00 x 78,00 mm",
+
+    Wyszukuje nazwę pliku geo – przyjmujemy, że jest to ciąg bez spacji kończący się na ".geo".
+    Po znalezieniu usuwamy rozszerzenie (.geo) i przyjmujemy to jako nazwę detalu.
+    Dodatkowo wyodrębnia:
+      - wymiary (np. "60,00 x 78,00 mm"),
       - ilość (Szt.:) – pierwszą liczbę po etykiecie "Szt.:",
-      - czas obróbki detalu w formacie HH:MM:SS.
-    Jeśli któraś wartość nie zostanie znaleziona, stosujemy wartość domyślną.
+      - czas obróbki w formacie HH:MM:SS, konwertowany na sekundy.
+    Jeśli którejś wartości nie znajdzie, ustawia wartość domyślną.
     """
     text = section_text.strip()
 
-    # Szukamy ciągu zakończonego ".geo" – zakładamy, że taki ciąg występuje w bloku i jest ostatni
-    geo_matches = re.findall(r'([\w\s\-\_]+\.geo)', text, re.IGNORECASE)
-    geo_file = geo_matches[-1].strip() if geo_matches else ""
-    # Usuń rozszerzenie .geo, jeśli jest
+    # Szukamy ciągu bez spacji kończącego się na ".geo"
+    # Przyjmujemy, że nazwa pliku nie zawiera spacji – dzięki temu nie pobierzemy dodatkowych fragmentów.
+    geo_matches = re.findall(r'([^\s]+\.geo)', text, re.IGNORECASE)
+    geo_file = geo_matches[0].strip() if geo_matches else ""
     if geo_file.lower().endswith(".geo"):
-        geo_file = geo_file[:-4].strip()
+        geo_file = geo_file[:-4].strip()  # usuwamy rozszerzenie
 
-    # Szukamy wymiarów – wzór: liczba, przecinek, liczba, spacja, x, spacja, liczba, przecinek, liczba, spacja, mm
+    # Wyodrębniamy wymiary – np. "60,00 x 78,00 mm"
     dims_match = re.search(r'(\d+,\d+\s*x\s*\d+,\d+\s*mm)', text, re.IGNORECASE)
     dimensions = dims_match.group(1).strip() if dims_match else ""
 
-    # Szukamy ilości – próbujemy znaleźć liczbę po etykiecie "Szt.:" (przyjmujemy, że etykieta i wartość mogą być oddzielone znakiem nowej linii)
+    # Wyodrębniamy ilość – szukamy liczby po etykiecie "Szt.:"
     qty_match = re.search(r'Szt\.:\s*(\d+)', text, re.IGNORECASE)
     if not qty_match:
-        # Alternatywnie, szukamy pierwszej liczby, która pojawia się na osobnej linii, która może być ilością
         qty_match = re.search(r'^\s*(\d+)\s*$', text, re.MULTILINE)
     try:
         quantity = int(qty_match.group(1).strip()) if qty_match else 1
     except Exception:
         quantity = 1
 
-    # Szukamy czasu obróbki – wzór HH:MM:SS
+    # Wyodrębniamy czas obróbki – format HH:MM:SS
     time_match = re.search(r'(\d{2}:\d{2}:\d{2})', text)
     cut_time = 0
     if time_match:
