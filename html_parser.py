@@ -1,12 +1,12 @@
 import os
 import ntpath
+import re
 from bs4 import BeautifulSoup, Comment
 from models import Program, Detail
-from utils import copy_image_to_static  # Funkcja ta powinna znajdować się w pliku utils.py
+from utils import copy_image_to_static, normalize_filename, find_file_recursive
 
 def parse_html(file_path: str) -> Program:
     """Parsuje plik HTML z danymi programu laserowego i zwraca obiekt Program."""
-    # Używamy kodowania CP1250, jeżeli UTF-8 nie działa
     with open(file_path, "r", encoding="cp1250") as f:
         html_content = f.read()
     soup = BeautifulSoup(html_content, 'html.parser')
@@ -77,24 +77,29 @@ def parse_html(file_path: str) -> Program:
             i = 0
             while i < len(rows):
                 tds = rows[i].find_all('td')
-                # Sprawdzamy, czy w drugim <td> znajduje się napis "NUMER CZĘŚCI:" – oznacza to początek bloku detalu
+                # Sprawdzamy, czy w drugiej komórce jest napis "NUMER CZĘŚCI:" – to początek bloku detalu
                 if len(tds) >= 2 and "NUMER CZĘŚCI:" in tds[1].get_text(strip=True):
                     detail_data = {}
-                    # Pobieramy obrazek z pierwszej komórki, jeśli jest dostępny
-                    img_tag = tds[0].find("img")
+                    # Pobieramy obrazek z pierwszej komórki
                     img_tag = tds[0].find("img")
                     if img_tag and img_tag.has_attr("src"):
                         image_src = img_tag["src"].strip()
-                        # Budujemy pełną ścieżkę do pliku obrazu – zakładamy, że obrazek znajduje się w tym samym katalogu co plik HTML
-                        original_image_path = os.path.join(os.path.dirname(file_path), image_src)
-                        print(f"ORG IMG PAT = {original_image_path}")
-                        if os.path.exists(original_image_path):
+                        # Normalizujemy nazwę (usuwa nadmiarowe białe znaki)
+                        image_src_norm = normalize_filename(image_src)
+                        base = os.path.basename(image_src_norm)
+                        directory = os.path.dirname(file_path)
+                        # Przeszukujemy katalog (rekursywnie), aby znaleźć plik (porównanie case-insensitive)
+                        original_image_path = find_file_recursive(directory, base)
+                        print(f"Normalized image path: {repr(original_image_path)}")
+                        if original_image_path and os.path.exists(original_image_path):
                             image_path = copy_image_to_static(original_image_path)
+                            print(f"Image copied to: {image_path}")
                         else:
                             image_path = None
+                            print("File not found after normalization.")
                     else:
                         image_path = None
-                    # Parsujemy kolejne wiersze bloku detalu (przyjmujemy, że blok ma około 15 wierszy)
+                    # Parsujemy pozostałe dane detalu (przyjmujemy blok około 15 wierszy)
                     for j in range(i, min(i + 15, len(rows))):
                         cells = rows[j].find_all('td')
                         if len(cells) < 2:
@@ -118,7 +123,7 @@ def parse_html(file_path: str) -> Program:
                             except ValueError:
                                 detail_data["cut_time"] = 0.0
                     if ("geo_file" in detail_data and "quantity" in detail_data and
-                            "dimensions" in detail_data and "cut_time" in detail_data):
+                        "dimensions" in detail_data and "cut_time" in detail_data):
                         detail_data.setdefault("cut_length", 0.0)
                         detail_data.setdefault("weight", 0.0)
                         detail = Detail(
@@ -131,7 +136,7 @@ def parse_html(file_path: str) -> Program:
                             image_path=image_path if image_path and os.path.exists(image_path) else None
                         )
                         details.append(detail)
-                    i += 15  # pomijamy blok detalu
+                    i += 15  # pomijamy cały blok detalu
                 else:
                     i += 1
 

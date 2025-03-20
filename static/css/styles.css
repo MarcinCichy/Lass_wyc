@@ -68,3 +68,15 @@ input[type="checkbox"].detailCheckbox:checked::after {
   top: 2px;
   left: 5px;
 }
+
+/* Ustaw stałą wysokość dla wierszy tabeli */
+#detailsTableBody tr {
+  height: 80px; /* lub inna wartość, którą uważasz za odpowiednią */
+}
+
+/* Obrazki wewnątrz tabeli skaluj do maksymalnej wysokości 80px */
+#detailsTableBody img {
+  max-height: 80px;
+  width: auto;      /* zachowaj proporcje */
+  object-fit: contain; /* lub 'scale-down' */
+}

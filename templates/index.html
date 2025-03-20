@@ -110,6 +110,16 @@
           $("#fileInput").click();
         });
 
+        // Formatowanie czasu
+        function formatSecondsToHMS(seconds) {
+          var h = Math.floor(seconds / 3600);
+          var m = Math.floor((seconds % 3600) / 60);
+          var s = seconds % 60;
+          return (h < 10 ? "0" + h : h) + ":" +
+                 (m < 10 ? "0" + m : m) + ":" +
+                 (s < 10 ? "0" + s : s);
+}
+
         // Po wybraniu pliku – wyświetlamy jego nazwę i wysyłamy do serwera
         $("#fileInput").change(function(){
           var fileName = $(this).val().split("\\").pop();
@@ -150,7 +160,7 @@
                 row += '<td>' + (response.thicknes || "") + '</td>';
                 row += '<td>' + (detail.dim_x || "") + '</td>';
                 row += '<td>' + (detail.dim_y || "") + '</td>';
-                row += '<td>' + detail.cut_time + '</td>';
+                row += "<td>" + formatSecondsToHMS(detail.cut_time) + "</td>";
                 row += '<td>' + detail.quantity + '</td>';
                 row += '<td>' + (detail.cutting_cost || "") + '</td>';
                 row += '<td>' + (detail.material_cost || "") + '</td>';
