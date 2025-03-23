@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import uuid
+import atexit
 
 def normalize_filename(name: str) -> str:
     """
@@ -24,17 +25,20 @@ def find_file_recursive(directory: str, target_name: str) -> str:
                 return os.path.join(root, f)
     return None
 
+# Ustawiamy TEMP_IMAGE_DIR jako podfolder "generated" w katalogu static/images
+TEMP_IMAGE_DIR = os.path.join(os.getcwd(), "static", "images", "generated")
+if not os.path.exists(TEMP_IMAGE_DIR):
+    os.makedirs(TEMP_IMAGE_DIR)
+
 def copy_image_to_static(image_path: str) -> str:
     """
-    Kopiuje plik obrazu z podanej ścieżki do katalogu static/images.
-    Zwraca URL względny, np. "static/images/nazwa_pliku_unikalna.BMP".
+    Kopiuje plik obrazu z podanej ścieżki do katalogu TEMP_IMAGE_DIR ("static/images/generated").
+    Generuje unikalną nazwę, aby uniknąć konfliktów.
+    Zwraca URL względny, np. "static/images/generated/nazwa_pliku_unikalna.BMP".
     """
-    dest_dir = os.path.join(os.getcwd(), 'static', 'images')
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
+    dest_dir = TEMP_IMAGE_DIR
     base_name = os.path.basename(image_path)
     name, ext = os.path.splitext(base_name)
-    # Generujemy unikalny identyfikator i dodajemy go do nazwy pliku
     unique_name = f"{name}_{uuid.uuid4().hex}{ext}"
     dest_path = os.path.join(dest_dir, unique_name)
     try:
@@ -42,4 +46,20 @@ def copy_image_to_static(image_path: str) -> str:
         print(f"Skopiowano obrazek z '{image_path}' do '{dest_path}'")
     except Exception as e:
         print("Błąd kopiowania obrazu:", e)
-    return "static/images/" + unique_name
+    return "static/images/generated/" + unique_name
+
+def clear_generated_images():
+    """
+    Usuwa wszystkie pliki w katalogu TEMP_IMAGE_DIR ("static/images/generated"),
+    pozostawiając sam folder oraz inne pliki w static/images nietknięte.
+    """
+    for filename in os.listdir(TEMP_IMAGE_DIR):
+        file_path = os.path.join(TEMP_IMAGE_DIR, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                print(f"Usunięto: {file_path}")
+        except Exception as e:
+            print(f"Błąd przy usuwaniu {file_path}: {e}")
+
+atexit.register(clear_generated_images)

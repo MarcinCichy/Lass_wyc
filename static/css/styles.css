@@ -57,3 +57,19 @@ table {
   align-items: center;
   padding: 0 15px;
 }
+
+input[type="checkbox"].detailCheckbox {
+  accent-color: #28a745; /* zielony kolor, możesz dostosować */
+}
+
+/* Ustaw stałą wysokość dla wierszy tabeli */
+#detailsTableBody tr {
+  height: 80px;
+}
+
+/* Obrazki wewnątrz tabeli: maksymalna wysokość 80px, zachowanie proporcji */
+#detailsTableBody img {
+  max-height: 80px;
+  width: auto;      /* zachowaj proporcje */
+  object-fit: contain;
+}
