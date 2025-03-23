@@ -14,69 +14,46 @@ table {
   width: 100%;
 }
 
-/* Dodatkowe style – elementy rozciągnięte do pełnej szerokości, zaczynające się od lewej */
+/* Pełna szerokość kontenera */
 .container-fluid {
   padding-left: 15px;
   padding-right: 15px;
 }
 
-/* Styl przycisku przełączania motywu – wycentrowanie ikony */
-#themeToggle {
-  position: fixed;
-  top: 20px;
-  right: 20px;
+/* Styl przycisku zmiany stylu – kwadratowy, 40x40px */
+.theme-toggle-btn {
+  background-color: #9b8d8a5 !important; /* przykładowy kolor */
+  color: #9b8d8a5 !important;
   width: 40px;
   height: 40px;
+  padding: 0;
   border: none;
   border-radius: 4px;
-  cursor: pointer;
-  font-size: 20px;
-  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-/* ============================================= */
-input[type="checkbox"].detailCheckbox {
-  -webkit-appearance: none;
-     -moz-appearance: none;
-          appearance: none;
-  width: 16px;
-  height: 16px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  background-color: #fff;
-  cursor: pointer;
+
+/* Styl przycisku plus w nagłówku karty "Dane programu" */
+.plus-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #28a745;
+  color: #fff;
 }
 
-/* Styl checkboxa, gdy jest zaznaczony */
-input[type="checkbox"].detailCheckbox:checked {
-  background-color: #555;
-  border: 1px solid #333;
-}
-
-/* Dodajemy "ptaszek" przy zaznaczonym checkboxie */
-input[type="checkbox"].detailCheckbox:checked::after {
-  content: "";
-  display: block;
-  width: 4px;
-  height: 8px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-  position: relative;
-  top: 2px;
-  left: 5px;
-}
-
-/* Ustaw stałą wysokość dla wierszy tabeli */
-#detailsTableBody tr {
-  height: 80px; /* lub inna wartość, którą uważasz za odpowiednią */
-}
-
-/* Obrazki wewnątrz tabeli skaluj do maksymalnej wysokości 80px */
-#detailsTableBody img {
-  max-height: 80px;
-  width: auto;      /* zachowaj proporcje */
-  object-fit: contain; /* lub 'scale-down' */
+/* Pasek na górze strony – korzysta z klasy card-header, więc odziedziczy jej kolor oraz padding */
+.top-bar {
+  height: 50px;           /* zwiększona wysokość paska */
+  width: 100%;
+  padding: 0 20px;        /* możesz dostosować padding, aby pasek był "szerszy" */
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
 }
