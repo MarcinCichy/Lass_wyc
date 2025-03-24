@@ -64,9 +64,10 @@ table {
 
 /* Styl przycisku plus – kwadratowy, 40x40px */
 .plus-btn {
-  width: 40px;
-  height: 40px;
+  width: 25px;
+  height: 25px;
   padding: 0;
+  border: none !important;
   border: none;
   border-radius: 4px;
   display: flex;
@@ -106,4 +107,11 @@ table {
 /* Kolor checkboxów w tabeli detali */
 input[type="checkbox"].detailCheckbox {
   accent-color: #28a745;
+}
+
+/* Wysokość nagłówków kart */
+.card-header {
+  display: flex;
+  align-items: center;   /* wyśrodkowanie pionowe */
+  height: 50px !important;
 }
