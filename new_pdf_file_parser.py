@@ -8,8 +8,11 @@ def parse_detail_section(section_text: str) -> Detail:
     """
     Parsuje blok tekstu z informacjami o detalu.
 
-    Wyszukuje nazwę pliku geo – przyjmujemy, że jest to ciąg bez spacji kończący się na ".geo".
-    Po znalezieniu usuwamy rozszerzenie (.geo) i przyjmujemy to jako nazwę detalu.
+    Próbuje wyłuskać pełną nazwę detalu (wraz ze spacjami) na podstawie
+    fragmentu tekstu po etykiecie "Plik geo:" - oczekujemy wzorca, że
+    nazwa będzie miała postać "coś .geo". Usuwamy końcówkę ".geo",
+    a pozostałą część przyjmujemy jako nazwę detalu.
+
     Dodatkowo wyodrębnia:
       - wymiary (np. "60,00 x 78,00 mm"),
       - ilość (Szt.:) – pierwszą liczbę po etykiecie "Szt.:",
@@ -18,12 +21,26 @@ def parse_detail_section(section_text: str) -> Detail:
     """
     text = section_text.strip()
 
-    # Szukamy ciągu bez spacji kończącego się na ".geo"
-    # Przyjmujemy, że nazwa pliku nie zawiera spacji – dzięki temu nie pobierzemy dodatkowych fragmentów.
-    geo_matches = re.findall(r'([^\s]+\.geo)', text, re.IGNORECASE)
-    geo_file = geo_matches[0].strip() if geo_matches else ""
-    if geo_file.lower().endswith(".geo"):
-        geo_file = geo_file[:-4].strip()  # usuwamy rozszerzenie
+    # Szukamy fragmentu zaczynającego się od "Plik geo:" i kończącego na ".geo"
+    det_name = ""
+    match = re.search(r'Plik\s+geo:\s*(.+?\.geo)', text, re.IGNORECASE)
+    if match:
+        full_name = match.group(1).strip()
+        # Usuń końcówkę ".geo"
+        if full_name.lower().endswith(".geo"):
+            det_name = full_name[:-4].strip()
+        else:
+            det_name = full_name
+    # Jeśli nie znaleziono, można spróbować innego podejścia, np. przeszukać wszystkie dopasowania
+    if not det_name:
+        geo_matches = re.findall(r'([^\n]+?\.geo)', text, re.IGNORECASE)
+        if geo_matches:
+            # Przyjmujemy ostatni dopasowany ciąg
+            full_name = geo_matches[-1].strip()
+            if full_name.lower().endswith(".geo"):
+                det_name = full_name[:-4].strip()
+            else:
+                det_name = full_name
 
     # Wyodrębniamy wymiary – np. "60,00 x 78,00 mm"
     dims_match = re.search(r'(\d+,\d+\s*x\s*\d+,\d+\s*mm)', text, re.IGNORECASE)
@@ -50,7 +67,7 @@ def parse_detail_section(section_text: str) -> Detail:
             cut_time = 0
 
     return Detail(
-        name=geo_file,
+        name=det_name,
         quantity=quantity,
         dimensions=dimensions,
         cut_time=cut_time,
@@ -80,19 +97,20 @@ def parse_pdf_new(doc, full_text: str) -> Program:
                                     re.IGNORECASE | re.MULTILINE)
         program_name = prog_name_match.group(1).strip() if prog_name_match else ""
 
-        rep_match = re.search(r"Czas\s+trwania\s*\n\s*(\S+)\s+(\d+)", combined_text, re.IGNORECASE | re.MULTILINE)
+        rep_match = re.search(r"Czas\s+trwania\s*\n\s*(\S+)\s+(\d+)", combined_text,
+                              re.IGNORECASE | re.MULTILINE)
         program_counts = int(rep_match.group(2)) if rep_match else 0
 
-        material_match = re.search(r"[A-Z0-9]+----[0-9x]+\s*\((\d+\.\d+)\)", combined_text, re.IGNORECASE)
+        material_match = re.search(r"[A-Z0-9]+----[0-9x]+\s*\((\d+\.\d+)\)", combined_text,
+                                   re.IGNORECASE)
         material = material_match.group(1).strip() if material_match else ""
 
-        # Grubość materiału – pobieramy z linii po "Wymiary:"
-        wymiary_pos = combined_text.find("Wymiary:")
-        if wymiary_pos != -1:
+        # Grubość materiału – wyodrębniamy z ciągu w formacie "X x Y x Z mm"
+        dimensions_regex = r'(\d+,\d+)\s*x\s*(\d+,\d+)\s*x\s*(\d+,\d+)\s*mm'
+        dim_match = re.search(dimensions_regex, combined_text, re.IGNORECASE)
+        if dim_match:
+            thick_str = dim_match.group(3).replace(",", ".")
             try:
-                substring = combined_text[wymiary_pos:].splitlines()[12]
-                tokens = substring.split()
-                thick_str = tokens[-2].replace(",", ".")
                 thicknes = abs(float(thick_str))
             except Exception:
                 thicknes = 0.0

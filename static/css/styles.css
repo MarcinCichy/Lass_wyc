@@ -8,7 +8,7 @@
   display: none;
 }
 
-/* Ustawienie tabeli, aby jej szerokość była 100% oraz kolumny automatycznie dopasowywały się do zawartości */
+/* Ustawienie tabeli, aby jej szerokość była 100% */
 table {
   table-layout: auto;
   width: 100%;
@@ -20,10 +20,49 @@ table {
   padding-right: 15px;
 }
 
+/* Klasa fixed-window – ustalona wysokość z wewnętrznym paskiem przewijania */
+.fixed-window {
+  height: 300px;       /* Stała wysokość dla okien "Dane programu" i "Wycena" */
+  overflow-y: auto;
+}
+
+/* Główny kontener – pełna wysokość widocznego ekranu minus wysokość górnego paska (np. 50px) */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 50px);
+}
+
+.card-header {
+  /* Przykładowo: */
+  height: 50px; /* ustala stałą wysokość nagłówka */
+  line-height: 50px; /* aby tekst był wycentrowany pionowo */
+  padding: 0 15px; /* wewnętrzne odstępy po bokach */
+}
+
+.row.mb-3 {
+  margin-bottom: 10rem; /* lub dowolna wartość */
+}
+
+/* Wiersz z oknem detali ma flex-grow: 1, aby rozciągać się do dolnej krawędzi */
+.flex-grow-1 {
+  flex-grow: 1;
+}
+
+/* Wiersze tabeli detali mają stałą wysokość */
+#detailsTableBody tr {
+  height: 40px;
+}
+
+/* Obrazki w tabeli detali skalowane do maksymalnej wysokości 80px */
+#detailsTableBody img {
+  max-height: 35px;
+  width: auto;
+  object-fit: contain;
+}
+
 /* Styl przycisku zmiany stylu – kwadratowy, 40x40px */
 .theme-toggle-btn {
-  background-color: #9b8d8a5 !important; /* przykładowy kolor */
-  color: #9b8d8a5 !important;
   width: 40px;
   height: 40px;
   padding: 0;
@@ -34,7 +73,7 @@ table {
   justify-content: center;
 }
 
-/* Styl przycisku plus w nagłówku karty "Dane programu" */
+/* Styl przycisku plus – kwadratowy, 40x40px */
 .plus-btn {
   width: 40px;
   height: 40px;
@@ -48,28 +87,31 @@ table {
   color: #fff;
 }
 
-/* Pasek na górze strony – korzysta z klasy card-header, więc odziedziczy jej kolor oraz padding */
+/* Styl przycisku remove – kwadratowy, 20x20px */
+.remove-program {
+  width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 4px; /* lub 0, jeśli chcesz, aby były idealnie kwadratowe */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #dc3545; /* czerwony, możesz zmienić na inny */
+  color: #fff !important;
+  font-size: 1.2em; /* dopasuj wielkość tekstu */
+}
+
+
+/* Pasek na górze – korzysta z klasy card-header */
 .top-bar {
-  height: 50px;           /* zwiększona wysokość paska */
-  width: 100%;
-  padding: 0 20px;        /* możesz dostosować padding, aby pasek był "szerszy" */
   display: flex;
   align-items: center;
   padding: 0 15px;
 }
 
+/* Kolor checkboxów w tabeli detali */
 input[type="checkbox"].detailCheckbox {
-  accent-color: #28a745; /* zielony kolor, możesz dostosować */
+  accent-color: #28a745;
 }
 
-/* Ustaw stałą wysokość dla wierszy tabeli */
-#detailsTableBody tr {
-  height: 80px;
-}
-
-/* Obrazki wewnątrz tabeli: maksymalna wysokość 80px, zachowanie proporcji */
-#detailsTableBody img {
-  max-height: 80px;
-  width: auto;      /* zachowaj proporcje */
-  object-fit: contain;
-}

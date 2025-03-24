@@ -15,14 +15,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/colresizable/1.6/colResizable-1.6.min.js"></script>
   </head>
   <body>
-    <!-- Górny pasek – korzysta z klasy card-header, więc odziedziczy dokładnie wygląd nagłówka karty -->
+    <!-- Górny pasek – zachowuje poprzedni wygląd (kolor, wysokość) -->
     <header class="card-header top-bar">
       <div class="d-flex justify-content-between align-items-center w-100">
         <div class="logo">
           <h5 class="mb-0">LassSup Web</h5>
         </div>
         <div>
-          <!-- Przycisk zmiany stylu – taki sam rozmiar jak przycisk plus -->
           <button id="themeToggle" class="btn btn-secondary theme-toggle-btn">
             <span id="themeIcon">☀</span>
           </button>
@@ -33,63 +32,79 @@
     <!-- Ukryty input pliku -->
     <input type="file" id="fileInput" name="file" accept=".html, .pdf" style="opacity:0; position:absolute; z-index:-1;">
 
-    <div class="container-fluid mt-3">
-      <!-- Karta z danymi programu -->
-      <div class="row mb-3">
+    <!-- Główny kontener, ustawiony jako flex-column, o wysokości dostępnej (100vh minus górny pasek) -->
+    <div class="container-fluid main-container">
+      <!-- Górna część: Karty "Dane programu" i "Wycena" – o stałej wysokości -->
+      <div class="row fixed-row mb-3">
         <div class="col-md-6">
-          <div class="card">
+          <div class="card fixed-window">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>Dane programu</span>
-              <!-- Przycisk plus – taki sam wygląd jak kwadratowy przycisk zmiany stylu -->
               <button id="plusButton" class="btn btn-success plus-btn">
                 <span style="font-size:1.5em;">&#43;</span>
               </button>
             </div>
-            <div class="card-body">
-              <p><strong>Nazwa programu:</strong> <span id="programName"></span></p>
-              <p><strong>Materiał:</strong> <span id="programMaterial"></span></p>
-              <p><strong>Grubość:</strong> <span id="programThicknes"></span> mm</p>
-              <p><strong>Czas trwania programu:</strong> <span id="programTime"></span></p>
-              <p><strong>Ilość powtórzeń:</strong> <span id="programCounts"></span></p>
+            <div class="card-body fixed-window"">
+              <div class="table-responsive">
+                <table id="programsTable" class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>Nazwa programu</th>
+                      <th>Materiał</th>
+                      <th>Grubość</th>
+                      <th>Czas trwania programu</th>
+                      <th>Ilość powtórzeń</th>
+                    </tr>
+                  </thead>
+                  <tbody id="programsTableBody">
+                    <!-- Wiersze programów dodawane dynamicznie -->
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
-        <!-- Karta Wycena -->
         <div class="col-md-6">
-          <div class="card">
+          <div class="card fixed-window">
             <div class="card-header">Wycena:</div>
-            <div class="card-body">
+            <div class="card-body fixed-content">
               <p>Brak danych</p>
             </div>
           </div>
         </div>
       </div>
-      <!-- Tabela detali -->
-      <div class="row mb-3">
+      <!-- Dolna część: Okno Detale – ma rozciągać się do dołu -->
+      <div class="row flex-grow-1">
         <div class="col">
-          <div class="table-responsive">
-            <table id="detailsTable" class="table table-bordered">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Rysunek</th>
-                  <th>Nazwa detalu</th>
-                  <th>Materiał</th>
-                  <th>Grubość</th>
-                  <th>Wymiar X</th>
-                  <th>Wymiar Y</th>
-                  <th>Czas cięcia</th>
-                  <th>Ilość</th>
-                  <th>Koszt cięcia</th>
-                  <th>Koszt materiału</th>
-                  <th>Koszt detalu</th>
-                  <th>Całkowity koszt</th>
-                </tr>
-              </thead>
-              <tbody id="detailsTableBody">
-                <!-- Wiersze danych będą dodawane dynamicznie -->
-              </tbody>
-            </table>
+          <div class="card h-100">
+            <div class="card-header">Detale:</div>
+            <div class="card-body fixed-window">
+              <div class="table-responsive">
+                <table id="detailsTable" class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>Rysunek</th>
+                      <th>Nazwa detalu</th>
+                      <th>Materiał</th>
+                      <th>Grubość</th>
+                      <th>Wymiar X</th>
+                      <th>Wymiar Y</th>
+                      <th>Czas cięcia</th>
+                      <th>Ilość</th>
+                      <th>Koszt cięcia</th>
+                      <th>Koszt materiału</th>
+                      <th>Koszt detalu</th>
+                      <th>Całkowity koszt</th>
+                    </tr>
+                  </thead>
+                  <tbody id="detailsTableBody">
+                    <!-- Wiersze detali dodawane dynamicznie -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -105,15 +120,28 @@
     </div>
 
     <script>
+      // Funkcja generująca unikalny identyfikator programu
+      function generateProgramId() {
+        return 'program_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      }
+
+      // Funkcja formatująca sekundy do formatu HH:MM:SS
+      function formatSecondsToHMS(seconds) {
+        var h = Math.floor(seconds / 3600);
+        var m = Math.floor((seconds % 3600) / 60);
+        var s = seconds % 60;
+        return (h < 10 ? "0" + h : h) + ":" +
+               (m < 10 ? "0" + m : m) + ":" +
+               (s < 10 ? "0" + s : s);
+      }
+
       $(document).ready(function() {
         $("#loading").hide();
 
-        // Kliknięcie przycisku plus w karcie "Dane programu" otwiera ukryty input
         $("#plusButton").click(function() {
           $("#fileInput").click();
         });
 
-        // Obsługa przycisku zmiany stylu w górnym pasku
         $("#themeToggle").click(function(){
           var darkTheme = $("#themeToggle").data("darkTheme");
           if(darkTheme === undefined) darkTheme = true;
@@ -128,16 +156,14 @@
           }
         });
 
-        // Po wybraniu pliku – wysyłamy go do serwera
         $("#fileInput").change(function(){
           var fileName = $(this).val().split("\\").pop();
-          $("#programName").text(fileName);
+          var programId = generateProgramId();
+          $("#loading").show();
           var file = $(this)[0].files[0];
           if (!file) return;
           var formData = new FormData();
           formData.append("file", file);
-          $("#loading").show();
-          $("#detailsTableBody").empty();
           $.ajax({
             url: '/upload',
             type: 'POST',
@@ -146,35 +172,41 @@
             processData: false,
             success: function(response) {
               $("#loading").hide();
-              $("#programName").text(response.name || "");
-              $("#programMaterial").text(response.material || "");
-              $("#programThicknes").text(response.thicknes || "");
-              $("#programTime").text(response.machine_time || "");
-              $("#programCounts").text(response.program_counts || "");
-              var tbody = $("#detailsTableBody");
+              // Dodaj nowy wiersz do tabeli programów
+              var programsTbody = $("#programsTableBody");
+              var progRow = "<tr data-program-id='" + programId + "'>";
+              progRow += "<td><button class='btn btn-danger btn-sm remove-program' data-program-id='" + programId + "'>-</button></td>";
+              progRow += "<td>" + (response.name || "") + "</td>";
+              progRow += "<td>" + (response.material || "") + "</td>";
+              progRow += "<td>" + (response.thicknes || "") + "</td>";
+              progRow += "<td>" + (response.machine_time || "") + "</td>";
+              progRow += "<td>" + (response.program_counts || "") + "</td>";
+              progRow += "</tr>";
+              programsTbody.append(progRow);
+
+              // Dodaj detale do tabeli detali – każdy detal otrzymuje atrybut data-program-id
+              var detailsTbody = $("#detailsTableBody");
               response.details.forEach(function(detail) {
-                var row = "<tr>";
-                // Dodajemy checkbox w pierwszej kolumnie
-                row += "<td><input type='checkbox' class='detailCheckbox' checked></td>";
-                // Kolumna z obrazkiem
+                var detailRow = "<tr data-program-id='" + programId + "'>";
+                detailRow += "<td><input type='checkbox' class='detailCheckbox' checked></td>";
                 if(detail.image_path) {
-                  row += "<td><img src='" + detail.image_path + "' alt='Rysunek' style='max-width:100px;'></td>";
+                  detailRow += "<td><img src='" + detail.image_path + "' alt='Rysunek' style='max-width:100px;'></td>";
                 } else {
-                  row += "<td></td>";
+                  detailRow += "<td></td>";
                 }
-                row += "<td>" + detail.name + "</td>";
-                row += "<td>" + (response.material || "") + "</td>";
-                row += "<td>" + (response.thicknes || "") + "</td>";
-                row += "<td>" + (detail.dim_x || "") + "</td>";
-                row += "<td>" + (detail.dim_y || "") + "</td>";
-                row += "<td>" + detail.cut_time + "</td>";
-                row += "<td>" + detail.quantity + "</td>";
-                row += "<td>" + (detail.cutting_cost || "") + "</td>";
-                row += "<td>" + (detail.material_cost || "") + "</td>";
-                row += "<td>" + (detail.total_cost || "") + "</td>";
-                row += "<td>" + (detail.total_cost_quantity || "") + "</td>";
-                row += "</tr>";
-                tbody.append(row);
+                detailRow += "<td>" + detail.name + "</td>";
+                detailRow += "<td>" + (response.material || "") + "</td>";
+                detailRow += "<td>" + (response.thicknes || "") + "</td>";
+                detailRow += "<td>" + (detail.dim_x || "") + "</td>";
+                detailRow += "<td>" + (detail.dim_y || "") + "</td>";
+                detailRow += "<td>" + formatSecondsToHMS(detail.cut_time) + "</td>";
+                detailRow += "<td>" + detail.quantity + "</td>";
+                detailRow += "<td>" + (detail.cutting_cost || "") + "</td>";
+                detailRow += "<td>" + (detail.material_cost || "") + "</td>";
+                detailRow += "<td>" + (detail.total_cost || "") + "</td>";
+                detailRow += "<td>" + (detail.total_cost_quantity || "") + "</td>";
+                detailRow += "</tr>";
+                detailsTbody.append(detailRow);
               });
               $("#detailsTable").colResizable({ liveDrag: true });
             },
@@ -183,6 +215,12 @@
               alert("Wystąpił błąd: " + xhr.responseJSON.error);
             }
           });
+        });
+
+        $(document).on("click", ".remove-program", function(){
+          var programId = $(this).data("program-id");
+          $("#programsTableBody tr[data-program-id='" + programId + "']").remove();
+          $("#detailsTableBody tr[data-program-id='" + programId + "']").remove();
         });
       });
     </script>
