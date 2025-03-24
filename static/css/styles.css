@@ -26,22 +26,11 @@ table {
   overflow-y: auto;
 }
 
-/* Główny kontener – pełna wysokość widocznego ekranu minus wysokość górnego paska (np. 50px) */
+/* Główny kontener – pełna wysokość widocznego ekranu minus górny pasek (przyjmujemy 50px) */
 .main-container {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 50px);
-}
-
-.card-header {
-  /* Przykładowo: */
-  height: 50px; /* ustala stałą wysokość nagłówka */
-  line-height: 50px; /* aby tekst był wycentrowany pionowo */
-  padding: 0 15px; /* wewnętrzne odstępy po bokach */
-}
-
-.row.mb-3 {
-  margin-bottom: 10rem; /* lub dowolna wartość */
 }
 
 /* Wiersz z oknem detali ma flex-grow: 1, aby rozciągać się do dolnej krawędzi */
@@ -54,7 +43,7 @@ table {
   height: 40px;
 }
 
-/* Obrazki w tabeli detali skalowane do maksymalnej wysokości 80px */
+/* Obrazki w tabeli detali skalowane do maksymalnej wysokości 35px */
 #detailsTableBody img {
   max-height: 35px;
   width: auto;
@@ -93,15 +82,14 @@ table {
   height: 20px !important;
   padding: 0 !important;
   border: none !important;
-  border-radius: 4px; /* lub 0, jeśli chcesz, aby były idealnie kwadratowe */
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #dc3545; /* czerwony, możesz zmienić na inny */
+  background-color: #dc3545;
   color: #fff !important;
-  font-size: 1.2em; /* dopasuj wielkość tekstu */
+  font-size: 1.2em;
 }
-
 
 /* Pasek na górze – korzysta z klasy card-header */
 .top-bar {
@@ -110,8 +98,12 @@ table {
   padding: 0 15px;
 }
 
+/* Klasa dla odstępu między górnym paskiem a kartami */
+.header-spacing {
+  margin-top: 20px;
+}
+
 /* Kolor checkboxów w tabeli detali */
 input[type="checkbox"].detailCheckbox {
   accent-color: #28a745;
 }
-

@@ -15,13 +15,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/colresizable/1.6/colResizable-1.6.min.js"></script>
   </head>
   <body>
-    <!-- Górny pasek – zachowuje poprzedni wygląd (kolor, wysokość) -->
+    <!-- Górny pasek – wykorzystuje klasę card-header, więc odziedziczy kolor i wysokość nagłówka -->
     <header class="card-header top-bar">
       <div class="d-flex justify-content-between align-items-center w-100">
         <div class="logo">
           <h5 class="mb-0">LassSup Web</h5>
         </div>
         <div>
+          <!-- Przycisk zmiany stylu – kwadratowy, 40x40px -->
           <button id="themeToggle" class="btn btn-secondary theme-toggle-btn">
             <span id="themeIcon">☀</span>
           </button>
@@ -32,10 +33,11 @@
     <!-- Ukryty input pliku -->
     <input type="file" id="fileInput" name="file" accept=".html, .pdf" style="opacity:0; position:absolute; z-index:-1;">
 
-    <!-- Główny kontener, ustawiony jako flex-column, o wysokości dostępnej (100vh minus górny pasek) -->
+    <!-- Główny kontener – flex-column, wysokość = 100vh minus wysokość górnego paska -->
     <div class="container-fluid main-container">
-      <!-- Górna część: Karty "Dane programu" i "Wycena" – o stałej wysokości -->
-      <div class="row fixed-row mb-3">
+      <!-- Odstęp między górnym paskiem a kartami -->
+      <div class="row header-spacing mb-3">
+        <!-- Karta "Dane programu" – zajmuje 50% szerokości -->
         <div class="col-md-6">
           <div class="card fixed-window">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -44,7 +46,7 @@
                 <span style="font-size:1.5em;">&#43;</span>
               </button>
             </div>
-            <div class="card-body fixed-window"">
+            <div class="card-body fixed-content">
               <div class="table-responsive">
                 <table id="programsTable" class="table table-bordered">
                   <thead>
@@ -65,6 +67,7 @@
             </div>
           </div>
         </div>
+        <!-- Karta "Wycena" – zajmuje 50% szerokości -->
         <div class="col-md-6">
           <div class="card fixed-window">
             <div class="card-header">Wycena:</div>
@@ -74,7 +77,7 @@
           </div>
         </div>
       </div>
-      <!-- Dolna część: Okno Detale – ma rozciągać się do dołu -->
+      <!-- Okno Detale – rozciąga się do dolnej krawędzi -->
       <div class="row flex-grow-1">
         <div class="col">
           <div class="card h-100">
@@ -120,12 +123,9 @@
     </div>
 
     <script>
-      // Funkcja generująca unikalny identyfikator programu
       function generateProgramId() {
         return 'program_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
       }
-
-      // Funkcja formatująca sekundy do formatu HH:MM:SS
       function formatSecondsToHMS(seconds) {
         var h = Math.floor(seconds / 3600);
         var m = Math.floor((seconds % 3600) / 60);
@@ -134,14 +134,11 @@
                (m < 10 ? "0" + m : m) + ":" +
                (s < 10 ? "0" + s : s);
       }
-
       $(document).ready(function() {
         $("#loading").hide();
-
         $("#plusButton").click(function() {
           $("#fileInput").click();
         });
-
         $("#themeToggle").click(function(){
           var darkTheme = $("#themeToggle").data("darkTheme");
           if(darkTheme === undefined) darkTheme = true;
@@ -155,7 +152,6 @@
             $("#themeToggle").data("darkTheme", true);
           }
         });
-
         $("#fileInput").change(function(){
           var fileName = $(this).val().split("\\").pop();
           var programId = generateProgramId();
@@ -172,7 +168,6 @@
             processData: false,
             success: function(response) {
               $("#loading").hide();
-              // Dodaj nowy wiersz do tabeli programów
               var programsTbody = $("#programsTableBody");
               var progRow = "<tr data-program-id='" + programId + "'>";
               progRow += "<td><button class='btn btn-danger btn-sm remove-program' data-program-id='" + programId + "'>-</button></td>";
@@ -183,8 +178,6 @@
               progRow += "<td>" + (response.program_counts || "") + "</td>";
               progRow += "</tr>";
               programsTbody.append(progRow);
-
-              // Dodaj detale do tabeli detali – każdy detal otrzymuje atrybut data-program-id
               var detailsTbody = $("#detailsTableBody");
               response.details.forEach(function(detail) {
                 var detailRow = "<tr data-program-id='" + programId + "'>";
@@ -216,7 +209,6 @@
             }
           });
         });
-
         $(document).on("click", ".remove-program", function(){
           var programId = $(this).data("program-id");
           $("#programsTableBody tr[data-program-id='" + programId + "']").remove();
