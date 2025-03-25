@@ -1,4 +1,11 @@
-/* Resetowanie box-sizing */
+html, body {
+  overflow: hidden;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Reset box-sizing */
 * {
   box-sizing: border-box;
 }
@@ -14,74 +21,89 @@
   padding-left: 15px;
   padding-right: 15px;
 }
+
+/* Główny kontener – margines-left zależy od sidebar (domyślnie zwinięty = 20px) */
 .main-container {
   display: flex;
   flex-direction: column;
+  margin-left: 20px;
+  transition: margin-left 0.3s;
   height: calc(100vh - 50px);
 }
-.header-spacing {
-  margin-top: 20px;
+
+/* Sidebar – po lewej, domyślnie zwinięty (20px); przy rozwinięciu 250px */
+#sidebar {
+  position: fixed;
+  top: 50px; /* poniżej górnego paska */
+  bottom: 0;
+  left: 0;
+  width: 20px;
+  background: inherit;
+  border-right: 1px solid #ddd;
+  padding: 15px;
+  overflow-y: auto;
+  transition: width 0.3s;
+  z-index: 10;
+}
+#sidebar.expanded {
+  width: 250px;
 }
 
-/* Stała wysokość zawartości karty – 300px */
+/* Gdy sidebar jest rozwinięty, main-container ma margin-left 250px */
+.main-container.expanded {
+  margin-left: 250px;
+}
+
+/* Sidebar content – wyświetlany tylko gdy panel rozwinięty */
+#sidebar .sidebar-content {
+  display: none;
+}
+#sidebar.expanded .sidebar-content {
+  display: block;
+}
+
+/* Klasa fixed-height – stała wysokość zawartości kart "Dane programów" i "Wycena" */
 .fixed-height {
   height: 300px;
   padding: 0;
 }
 
-/* Przewijalny kontener tabeli – zajmuje całą wysokość karty */
+/* Klasa fixed-window – przewijana zawartość (100% wysokości rodzica) */
 .fixed-window {
   height: 100%;
   overflow-y: auto;
 }
 
-/* Ustawienia tabeli */
-.table-responsive table {
-  margin-top: 0;
-  padding-top: 0;
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-}
-
-/* Sticky header – zachowuje się zawsze na górze przewijanego obszaru */
+/* Sticky nagłówki tabeli */
 .sticky-table thead th {
   position: sticky;
   top: 0;
-  background-color: rgba(52, 58, 64, 1.0); /* półprzezroczyste tło – możesz dostosować wartość alfa */
-  background-clip: padding-box;
+  background-color: rgba(52, 58, 64, 1.0);
   color: #fff;
   z-index: 2;
   white-space: nowrap;
   padding: 8px;
-  margin-bottom: -1px;
-  margin-top: 0;
 }
 
-/* Ustalona wysokość wierszy w ciele tabeli */
+/* Wiersze tabeli w ciele mają stałą wysokość */
 .sticky-table tbody tr {
   height: 40px;
 }
-
-/* Stylizacja komórek ciała tabeli */
 .sticky-table tbody td {
   padding: 8px;
-  border-top: 1px solid #dee2e6;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Obrazki w tabeli detali skalowane do maksymalnej wysokości 35px */
+/* Obrazki w tabeli detali */
 #detailsTableBody img {
   max-height: 35px;
   width: auto;
   object-fit: contain;
 }
 
-
-
-/* Styl przycisku zmiany stylu – kwadratowy, 40x40px */
+/* Przyciski */
 .theme-toggle-btn {
   width: 40px;
   height: 40px;
@@ -91,8 +113,6 @@
   align-items: center;
   justify-content: center;
 }
-
-/* Styl przycisku plus – kwadratowy, 40x40px */
 .plus-btn {
   width: 25px;
   height: 25px;
@@ -104,8 +124,6 @@
   background-color: #28a745;
   color: #fff;
 }
-
-/* Styl przycisku remove – kwadratowy, 20x20px */
 .remove-program {
   width: 20px;
   height: 20px;
@@ -119,20 +137,37 @@
   font-size: 1.2em;
 }
 
-/* Nagłówki kart */
+/* Nagłówki kart – ustalona wysokość i wyśrodkowanie pionowe tekstu, tekst wyrównany do lewej */
 .card-header {
-  margin-bottom: 0;
-  padding-bottom: 0;
   height: 50px !important;
+  line-height: 50px !important;
+  padding: 0 15px;
   display: flex;
   align-items: center;
-  padding: 0 15px;
+  justify-content: space-between;
 }
+
+/* Pasek na górze (top-bar) */
 .top-bar {
   padding: 0 15px;
 }
 
-/* Kolor checkboxów w tabeli detali */
+/* Odstęp między górnym paskiem a kartami */
+.header-spacing {
+  margin-top: 20px;
+}
+
+/* Checkboxy */
 input[type="checkbox"].detailCheckbox {
   accent-color: #28a745;
+}
+
+/* Elastyczne rozciąganie okna "Detale" do dolnej krawędzi */
+.flex-grow-1 {
+  flex-grow: 1;
+}
+
+/* Klasa h-100 – 100% wysokości */
+.h-100 {
+  height: 100%;
 }

@@ -15,11 +15,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/colresizable/1.6/colResizable-1.6.min.js"></script>
   </head>
   <body>
-    <!-- Nagłówek strony -->
+    <!-- Nagłówek strony – dodaliśmy przycisk do rozwijania sidebaru po lewej -->
     <header class="card-header top-bar">
       <div class="d-flex justify-content-between align-items-center w-100">
-        <div class="logo">
-          <h5 class="mb-0">LassSup Web</h5>
+        <div class="d-flex align-items-center">
+          <button id="sidebarToggle" class="btn btn-primary sidebar-toggle-btn">〉</button>
+          <div class="logo" style="margin-left:10px;">
+            <h5 class="mb-0">LassSup Web</h5>
+          </div>
         </div>
         <div>
           <button id="themeToggle" class="btn btn-secondary theme-toggle-btn">
@@ -32,19 +35,55 @@
     <!-- Ukryty input pliku -->
     <input type="file" id="fileInput" name="file" accept=".html, .pdf">
 
-    <!-- Główny kontener – wysokość = 100vh minus wysokość top bara -->
+    <!-- Sidebar – rozwijalny panel z lewej -->
+    <div id="sidebar">
+      <div class="sidebar-content">
+        <form id="pricingForm">
+          <div class="form-group">
+            <label for="cuttingCostBlack">Koszt cięcia stali czarnej</label>
+            <input type="number" class="form-control" id="cuttingCostBlack" value="10.00">
+          </div>
+          <div class="form-group">
+            <label for="cuttingCostStainless">Koszt cięcia stali nierdzewnej</label>
+            <input type="number" class="form-control" id="cuttingCostStainless" value="15.00">
+          </div>
+          <div class="form-group">
+            <label for="cuttingCostAluminium">Koszt cięcia aluminium</label>
+            <input type="number" class="form-control" id="cuttingCostAluminium" value="20.00">
+          </div>
+          <div class="form-group">
+            <label for="materialCostBlack">Koszt materiału (stal czarna)</label>
+            <input type="number" class="form-control" id="materialCostBlack" value="5.00">
+          </div>
+          <div class="form-group">
+            <label for="materialCostStainless">Koszt materiału (stal nierdzewna)</label>
+            <input type="number" class="form-control" id="materialCostStainless" value="8.00">
+          </div>
+          <div class="form-group">
+            <label for="materialCostAluminium">Koszt materiału (aluminium)</label>
+            <input type="number" class="form-control" id="materialCostAluminium" value="12.00">
+          </div>
+          <div class="form-group">
+            <label for="bendingCostSum">Suma kosztów gięcia</label>
+            <input type="number" class="form-control" id="bendingCostSum" value="30.00">
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Główna zawartość – margines-left zależy od stanu sidebaru -->
     <div class="container-fluid main-container">
+      <!-- Karty "Dane programów:" i "Wycena:" -->
       <div class="row header-spacing mb-3">
         <!-- Karta "Dane programów:" -->
         <div class="col-md-6">
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-              <span>Dane programów:</span>
+              <span class="header-text">Dane programów:</span>
               <button id="plusButton" class="btn btn-success plus-btn">
                 <span style="font-size:1.5em;">&#43;</span>
               </button>
             </div>
-            <!-- Ustalona stała wysokość zawartości karty -->
             <div class="card-body fixed-height">
               <div class="table-responsive fixed-window">
                 <table id="programsTable" class="table table-bordered sticky-table">
@@ -78,7 +117,6 @@
         <div class="col-md-6">
           <div class="card">
             <div class="card-header">Wycena:</div>
-            <!-- Ta sama stała wysokość -->
             <div class="card-body fixed-height">
               <p>Brak danych</p>
             </div>
@@ -134,7 +172,6 @@
           </div>
         </div>
       </div>
-
       <!-- Wskaźnik ładowania -->
       <div id="loading" class="row">
         <div class="col">
@@ -147,7 +184,20 @@
     </div>
 
     <script>
-      // Funkcje pomocnicze
+      // Toggle sidebar – przycisk umieszczony w top-bar
+      $(document).ready(function(){
+        $("#sidebarToggle").click(function(){
+          $("#sidebar").toggleClass("expanded");
+          if ($("#sidebar").hasClass("expanded")) {
+            $(".main-container").removeClass("collapsed").addClass("expanded");
+            $(this).text("〈");
+          } else {
+            $(".main-container").removeClass("expanded").addClass("collapsed");
+            $(this).text("〉");
+          }
+        });
+      });
+
       function generateProgramId() {
         return 'program_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
       }
@@ -203,7 +253,6 @@
               progRow += "<td>" + (response.program_counts || "") + "</td>";
               progRow += "</tr>";
               programsTbody.append(progRow);
-
               var detailsTbody = $("#detailsTableBody");
               response.details.forEach(function(detail) {
                 var detailRow = "<tr data-program-id='" + programId + "'>";
