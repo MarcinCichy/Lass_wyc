@@ -15,14 +15,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/colresizable/1.6/colResizable-1.6.min.js"></script>
   </head>
   <body>
-    <!-- Górny pasek – wykorzystuje klasę card-header, więc odziedziczy kolor i wysokość nagłówka -->
+    <!-- Nagłówek strony -->
     <header class="card-header top-bar">
       <div class="d-flex justify-content-between align-items-center w-100">
         <div class="logo">
           <h5 class="mb-0">LassSup Web</h5>
         </div>
         <div>
-          <!-- Przycisk zmiany stylu – kwadratowy, 40x40px -->
           <button id="themeToggle" class="btn btn-secondary theme-toggle-btn">
             <span id="themeIcon">☀</span>
           </button>
@@ -31,31 +30,39 @@
     </header>
 
     <!-- Ukryty input pliku -->
-    <input type="file" id="fileInput" name="file" accept=".html, .pdf" style="opacity:0; position:absolute; z-index:-1;">
+    <input type="file" id="fileInput" name="file" accept=".html, .pdf">
 
-    <!-- Główny kontener – flex-column, wysokość = 100vh minus wysokość górnego paska -->
+    <!-- Główny kontener – wysokość = 100vh minus wysokość top bara -->
     <div class="container-fluid main-container">
-      <!-- Odstęp między górnym paskiem a kartami -->
       <div class="row header-spacing mb-3">
-        <!-- Karta "Dane programu" – zajmuje 50% szerokości -->
+        <!-- Karta "Dane programów:" -->
         <div class="col-md-6">
-          <div class="card fixed-window">
+          <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>Dane programów:</span>
               <button id="plusButton" class="btn btn-success plus-btn">
                 <span style="font-size:1.5em;">&#43;</span>
               </button>
             </div>
-            <div class="card-body fixed-content">
-              <div class="table-responsive">
-                <table id="programsTable" class="table table-bordered">
+            <!-- Ustalona stała wysokość zawartości karty -->
+            <div class="card-body fixed-height">
+              <div class="table-responsive fixed-window">
+                <table id="programsTable" class="table table-bordered sticky-table">
+                  <colgroup>
+                    <col style="width:5%;">
+                    <col style="width:25%;">
+                    <col style="width:20%;">
+                    <col style="width:15%;">
+                    <col style="width:20%;">
+                    <col style="width:15%;">
+                  </colgroup>
                   <thead>
                     <tr>
                       <th></th>
                       <th>Nazwa programu</th>
                       <th>Materiał</th>
                       <th>Grubość</th>
-                      <th>Czas trwania programu</th>
+                      <th>Czas programu</th>
                       <th>Ilość powtórzeń</th>
                     </tr>
                   </thead>
@@ -67,24 +74,40 @@
             </div>
           </div>
         </div>
-        <!-- Karta "Wycena" – zajmuje 50% szerokości -->
+        <!-- Karta "Wycena:" -->
         <div class="col-md-6">
-          <div class="card fixed-window">
+          <div class="card">
             <div class="card-header">Wycena:</div>
-            <div class="card-body fixed-content">
+            <!-- Ta sama stała wysokość -->
+            <div class="card-body fixed-height">
               <p>Brak danych</p>
             </div>
           </div>
         </div>
       </div>
-      <!-- Okno Detale – rozciąga się do dolnej krawędzi -->
+      <!-- Karta "Detale:" -->
       <div class="row flex-grow-1">
         <div class="col">
           <div class="card h-100">
             <div class="card-header">Detale:</div>
-            <div class="card-body fixed-window">
-              <div class="table-responsive">
-                <table id="detailsTable" class="table table-bordered">
+            <div class="card-body fixed-height">
+              <div class="table-responsive fixed-window">
+                <table id="detailsTable" class="table table-bordered sticky-table">
+                  <colgroup>
+                    <col style="width:5%;">
+                    <col style="width:10%;">
+                    <col style="width:15%;">
+                    <col style="width:10%;">
+                    <col style="width:10%;">
+                    <col style="width:10%;">
+                    <col style="width:10%;">
+                    <col style="width:10%;">
+                    <col style="width:10%;">
+                    <col style="width:10%;">
+                    <col style="width:10%;">
+                    <col style="width:10%;">
+                    <col style="width:10%;">
+                  </colgroup>
                   <thead>
                     <tr>
                       <th></th>
@@ -111,6 +134,7 @@
           </div>
         </div>
       </div>
+
       <!-- Wskaźnik ładowania -->
       <div id="loading" class="row">
         <div class="col">
@@ -123,6 +147,7 @@
     </div>
 
     <script>
+      // Funkcje pomocnicze
       function generateProgramId() {
         return 'program_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
       }
@@ -178,6 +203,7 @@
               progRow += "<td>" + (response.program_counts || "") + "</td>";
               progRow += "</tr>";
               programsTbody.append(progRow);
+
               var detailsTbody = $("#detailsTableBody");
               response.details.forEach(function(detail) {
                 var detailRow = "<tr data-program-id='" + programId + "'>";

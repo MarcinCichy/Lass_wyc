@@ -1,46 +1,74 @@
-/* Ukrycie elementu input do przesyłania plików */
-#fileInput {
-  display: none;
+/* Resetowanie box-sizing */
+* {
+  box-sizing: border-box;
 }
 
-/* Ukrycie wskaźnika ładowania przy starcie */
+/* Ukrycie inputa i wskaźnika ładowania */
+#fileInput,
 #loading {
   display: none;
 }
 
-/* Ustawienie tabeli, aby jej szerokość była 100% */
-table {
-  table-layout: auto;
-  width: 100%;
-}
-
-/* Pełna szerokość kontenera */
+/* Kontener główny */
 .container-fluid {
   padding-left: 15px;
   padding-right: 15px;
 }
-
-/* Klasa fixed-window – ustalona wysokość z wewnętrznym paskiem przewijania */
-.fixed-window {
-  height: 300px;       /* Stała wysokość dla okien "Dane programu" i "Wycena" */
-  overflow-y: auto;
-}
-
-/* Główny kontener – pełna wysokość widocznego ekranu minus górny pasek (przyjmujemy 50px) */
 .main-container {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 50px);
 }
-
-/* Wiersz z oknem detali ma flex-grow: 1, aby rozciągać się do dolnej krawędzi */
-.flex-grow-1 {
-  flex-grow: 1;
+.header-spacing {
+  margin-top: 20px;
 }
 
-/* Wiersze tabeli detali mają stałą wysokość */
-#detailsTableBody tr {
+/* Stała wysokość zawartości karty – 300px */
+.fixed-height {
+  height: 300px;
+  padding: 0;
+}
+
+/* Przewijalny kontener tabeli – zajmuje całą wysokość karty */
+.fixed-window {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Ustawienia tabeli */
+.table-responsive table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Sticky header – zachowuje się zawsze na górze przewijanego obszaru */
+.sticky-table thead th {
+  position: sticky;
+  top: 0;
+
+  background-color: inherit;   /* lub możesz pominąć tę linię, by odziedziczyć styl motywu */
+  background-clip: padding-box; /* zapobiega rozlewaniu się tła na border */
+  color: #fff;             /* biały kolor tekstu */
+  z-index: 2;
+  white-space: nowrap;
+  padding: 8px;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: -1px; /* ujemny margines – usuwa szczelinę */
+}
+
+/* Ustalona wysokość wierszy w ciele tabeli */
+.sticky-table tbody tr {
   height: 40px;
+}
+
+/* Stylizacja komórek ciała tabeli */
+.sticky-table tbody td {
+  padding: 8px;
+  border-top: 1px solid #dee2e6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Obrazki w tabeli detali skalowane do maksymalnej wysokości 35px */
@@ -50,11 +78,12 @@ table {
   object-fit: contain;
 }
 
+
+
 /* Styl przycisku zmiany stylu – kwadratowy, 40x40px */
 .theme-toggle-btn {
   width: 40px;
   height: 40px;
-  padding: 0;
   border: none;
   border-radius: 4px;
   display: flex;
@@ -66,8 +95,6 @@ table {
 .plus-btn {
   width: 25px;
   height: 25px;
-  padding: 0;
-  border: none !important;
   border: none;
   border-radius: 4px;
   display: flex;
@@ -79,39 +106,30 @@ table {
 
 /* Styl przycisku remove – kwadratowy, 20x20px */
 .remove-program {
-  width: 20px !important;
-  height: 20px !important;
-  padding: 0 !important;
-  border: none !important;
+  width: 20px;
+  height: 20px;
+  border: none;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #dc3545;
-  color: #fff !important;
+  color: #fff;
   font-size: 1.2em;
 }
 
-/* Pasek na górze – korzysta z klasy card-header */
-.top-bar {
+/* Nagłówki kart */
+.card-header {
+  height: 50px !important;
   display: flex;
   align-items: center;
   padding: 0 15px;
 }
-
-/* Klasa dla odstępu między górnym paskiem a kartami */
-.header-spacing {
-  margin-top: 20px;
+.top-bar {
+  padding: 0 15px;
 }
 
 /* Kolor checkboxów w tabeli detali */
 input[type="checkbox"].detailCheckbox {
   accent-color: #28a745;
-}
-
-/* Wysokość nagłówków kart */
-.card-header {
-  display: flex;
-  align-items: center;   /* wyśrodkowanie pionowe */
-  height: 50px !important;
 }
