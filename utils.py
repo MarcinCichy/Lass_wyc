@@ -3,6 +3,7 @@ import re
 import shutil
 import uuid
 import atexit
+from PIL import Image
 
 def normalize_filename(name: str) -> str:
     """
@@ -30,23 +31,38 @@ TEMP_IMAGE_DIR = os.path.join(os.getcwd(), "static", "images", "generated")
 if not os.path.exists(TEMP_IMAGE_DIR):
     os.makedirs(TEMP_IMAGE_DIR)
 
+
 def copy_image_to_static(image_path: str) -> str:
     """
-    Kopiuje plik obrazu z podanej ścieżki do katalogu TEMP_IMAGE_DIR ("static/images/generated").
-    Generuje unikalną nazwę, aby uniknąć konfliktów.
-    Zwraca URL względny, np. "static/images/generated/nazwa_pliku_unikalna.BMP".
+    Kopiuje lub konwertuje plik obrazu z podanej ścieżki do katalogu static/images.
+    Jeśli obraz jest w formacie BMP, konwertuje go do PNG.
+    Zwraca URL względny, np. "static/images/nazwa_pliku_unikalna.png".
     """
-    dest_dir = TEMP_IMAGE_DIR
+    dest_dir = os.path.join(os.getcwd(), 'static', 'images')
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
     base_name = os.path.basename(image_path)
     name, ext = os.path.splitext(base_name)
-    unique_name = f"{name}_{uuid.uuid4().hex}{ext}"
-    dest_path = os.path.join(dest_dir, unique_name)
-    try:
+
+    # Jeśli obraz jest BMP, konwertuj go do PNG
+    if ext.lower() == ".bmp":
+        try:
+            img = Image.open(image_path)
+            unique_name = f"{name}_{uuid.uuid4().hex}.png"
+            dest_path = os.path.join(dest_dir, unique_name)
+            img.save(dest_path, format="PNG")
+            print(f"Przekonwertowano BMP do PNG: {dest_path}")
+        except Exception as e:
+            print("Błąd konwersji BMP:", e)
+            unique_name = f"{name}_{uuid.uuid4().hex}{ext}"
+            dest_path = os.path.join(dest_dir, unique_name)
+            shutil.copy(image_path, dest_path)
+    else:
+        unique_name = f"{name}_{uuid.uuid4().hex}{ext}"
+        dest_path = os.path.join(dest_dir, unique_name)
         shutil.copy(image_path, dest_path)
-        print(f"Skopiowano obrazek z '{image_path}' do '{dest_path}'")
-    except Exception as e:
-        print("Błąd kopiowania obrazu:", e)
-    return "static/images/generated/" + unique_name
+
+    return "static/images/" + unique_name
 
 def clear_generated_images():
     """
