@@ -37,6 +37,8 @@
 
 /* Ustawienia tabeli */
 .table-responsive table {
+  margin-top: 0;
+  padding-top: 0;
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
@@ -46,15 +48,14 @@
 .sticky-table thead th {
   position: sticky;
   top: 0;
-
-  background-color: inherit;   /* lub możesz pominąć tę linię, by odziedziczyć styl motywu */
-  background-clip: padding-box; /* zapobiega rozlewaniu się tła na border */
-  color: #fff;             /* biały kolor tekstu */
+  background-color: rgba(52, 58, 64, 1.0); /* półprzezroczyste tło – możesz dostosować wartość alfa */
+  background-clip: padding-box;
+  color: #fff;
   z-index: 2;
   white-space: nowrap;
   padding: 8px;
-  border-bottom: 1px solid #dee2e6;
-  margin-bottom: -1px; /* ujemny margines – usuwa szczelinę */
+  margin-bottom: -1px;
+  margin-top: 0;
 }
 
 /* Ustalona wysokość wierszy w ciele tabeli */
@@ -120,6 +121,8 @@
 
 /* Nagłówki kart */
 .card-header {
+  margin-bottom: 0;
+  padding-bottom: 0;
   height: 50px !important;
   display: flex;
   align-items: center;
