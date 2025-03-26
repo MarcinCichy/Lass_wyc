@@ -138,8 +138,9 @@
                     <col style="width:10%;">
                     <col style="width:10%;">
                     <col style="width:10%;">
-                    <col style="width:10%;">
-                    <col style="width:10%;">
+                    <col style="width:10%;"> <!-- Wymiar Y -->
+                    <col style="width:10%;"> <!-- Nowa kolumna: Ilość gięć -->
+                    <col style="width:10%;"> <!-- Czas cięcia -->
                     <col style="width:10%;">
                     <col style="width:10%;">
                     <col style="width:10%;">
@@ -155,6 +156,7 @@
                       <th>Grubość</th>
                       <th>Wymiar X</th>
                       <th>Wymiar Y</th>
+                      <th>Ilość gięć</th>
                       <th>Czas cięcia</th>
                       <th>Ilość</th>
                       <th>Koszt cięcia</th>
@@ -254,8 +256,10 @@
               progRow += "</tr>";
               programsTbody.append(progRow);
               var detailsTbody = $("#detailsTableBody");
+              // W success callback, przy generowaniu wiersza detalu:
               response.details.forEach(function(detail) {
-                var detailRow = "<tr data-program-id='" + programId + "'>";
+                // Upewnij się, że obiekt detail zawiera "cut_time" oraz "weight"
+                var detailRow = "<tr data-program-id='" + programId + "' data-cut-time='" + detail.cut_time + "' data-weight='" + detail.weight + "'>";
                 detailRow += "<td><input type='checkbox' class='detailCheckbox' checked></td>";
                 if(detail.image_path) {
                   detailRow += "<td><img src='" + detail.image_path + "' alt='Rysunek' style='max-width:100px;'></td>";
@@ -267,8 +271,11 @@
                 detailRow += "<td>" + (response.thicknes || "") + "</td>";
                 detailRow += "<td>" + (detail.dim_x || "") + "</td>";
                 detailRow += "<td>" + (detail.dim_y || "") + "</td>";
+                // Kolumna "Ilość gięć" z edytowalnym polem
+                detailRow += "<td><input type='number' class='bending-input' value='0' style='width:100%; background:inherit; border:none; text-align:center;'/></td>";
                 detailRow += "<td>" + formatSecondsToHMS(detail.cut_time) + "</td>";
                 detailRow += "<td>" + detail.quantity + "</td>";
+                // Początkowe koszty – pobrane z serwera (mogą być przeliczone później)
                 detailRow += "<td>" + (detail.cutting_cost || "") + "</td>";
                 detailRow += "<td>" + (detail.material_cost || "") + "</td>";
                 detailRow += "<td>" + (detail.total_cost || "") + "</td>";
@@ -289,6 +296,224 @@
           $("#programsTableBody tr[data-program-id='" + programId + "']").remove();
           $("#detailsTableBody tr[data-program-id='" + programId + "']").remove();
         });
+      });
+      // Funkcja wysyłająca nowe wartości konfiguracji do serwera
+      function updateConfig() {
+        var newConfig = {
+          cutting_costs: {
+            stal_czarna: parseFloat($("#cuttingCostBlack").val()),
+            stal_nierdzewna: parseFloat($("#cuttingCostStainless").val()),
+            aluminium: parseFloat($("#cuttingCostAluminium").val())
+          },
+          material_costs: {
+            stal_czarna: parseFloat($("#materialCostBlack").val()),
+            stal_nierdzewna: parseFloat($("#materialCostStainless").val()),
+            aluminium: parseFloat($("#materialCostAluminium").val())
+          },
+          suma_kosztow_giecia: parseFloat($("#bendingCostSum").val())
+        };
+        $.ajax({
+          url: '/update_config',
+          type: 'POST',
+          data: JSON.stringify(newConfig),
+          contentType: 'application/json',
+          success: function(response) {
+            console.log("Konfiguracja zaktualizowana:", response);
+          },
+          error: function(xhr, status, error) {
+            console.error("Błąd przy aktualizacji konfiguracji:", error);
+          }
+        });
+      }
+
+      // Nasłuchiwanie zmian w polach formularza panelu bocznego
+      $(document).ready(function() {
+        // Istniejący kod...
+
+        // Dodajemy nasłuchiwanie zmian dla wszystkich inputów w formularzu #pricingForm
+        $("#pricingForm input").on("change", function() {
+          updateConfig();
+        });
+
+        // Pozostały istniejący kod w $(document).ready() (np. obsługa sidebaru, upload pliku itd.)
+        // ...
+      });
+      // Funkcja przeliczająca koszt dla pojedynczego wiersza detalu
+      function recalcRow($row) {
+        // Pobieramy wartość wpisaną przez użytkownika – ilość gięć
+        var bendingCount = parseFloat($row.find("input.bending-input").val()) || 0;
+        // Pobieramy koszty cięcia i materiału z komórek (kolumna 10 i 11)
+        var cuttingCost = parseFloat($row.find("td").eq(10).text()) || 0;
+        var materialCost = parseFloat($row.find("td").eq(11).text()) || 0;
+        var baseCost = cuttingCost + materialCost;
+        // Pobieramy koszt jednego gięcia z panelu bocznego (pole "Suma kosztów gięcia")
+        var bendingCost = parseFloat($("#bendingCostSum").val()) || 0;
+        // Nowy koszt detalu to koszt podstawowy plus koszt gięć
+        var newDetailCost = baseCost + (bendingCount * bendingCost);
+        // Aktualizujemy komórkę "Koszt detalu" (kolumna 12)
+        $row.find("td").eq(12).text(newDetailCost.toFixed(2));
+        // Pobieramy ilość sztuk (kolumna 9)
+        var quantity = parseFloat($row.find("td").eq(9).text()) || 1;
+        // Aktualizujemy komórkę "Całkowity koszt" (kolumna 13)
+        $row.find("td").eq(13).text((newDetailCost * quantity).toFixed(2));
+      }
+
+      // Nasłuchiwanie zmian w polach "Ilość gięć" w tabeli detali
+      $(document).on("change", ".bending-input", function(){
+        var $row = $(this).closest("tr");
+        recalcRow($row);
+      });
+
+      // Funkcja przeliczająca wszystkie wiersze tabeli detali
+      function recalcAllRows() {
+        $("#detailsTableBody tr").each(function(){
+          recalcRow($(this));
+        });
+      }
+
+      // Funkcja updateConfig (opisana wcześniej) wysyła nowe wartości z panelu do serwera
+      function updateConfig() {
+        var newConfig = {
+          cutting_costs: {
+            stal_czarna: parseFloat($("#cuttingCostBlack").val()),
+            stal_nierdzewna: parseFloat($("#cuttingCostStainless").val()),
+            aluminium: parseFloat($("#cuttingCostAluminium").val())
+          },
+          material_costs: {
+            stal_czarna: parseFloat($("#materialCostBlack").val()),
+            stal_nierdzewna: parseFloat($("#materialCostStainless").val()),
+            aluminium: parseFloat($("#materialCostAluminium").val())
+          },
+          suma_kosztow_giecia: parseFloat($("#bendingCostSum").val())
+        };
+        $.ajax({
+          url: '/update_config',
+          type: 'POST',
+          data: JSON.stringify(newConfig),
+          contentType: 'application/json',
+          success: function(response) {
+            console.log("Konfiguracja zaktualizowana:", response);
+            // Po udanej aktualizacji konfiguracji przeliczamy wszystkie wiersze
+            recalcAllRows();
+          },
+          error: function(xhr, status, error) {
+            console.error("Błąd przy aktualizacji konfiguracji:", error);
+          }
+        });
+      }
+
+      // Nasłuchujemy zmian we wszystkich inputach w formularzu panelu cenowego,
+      // aby po zmianie wysłać nową konfigurację i przeliczyć koszty w tabeli detali
+      $("#pricingForm input").on("change", function() {
+        updateConfig();
+      });
+      // Funkcje zwracające odpowiednie stawki na podstawie materiału (tekst w komórce)
+      function getCuttingRate(material) {
+        material = material.toLowerCase();
+        if (material.indexOf("1.4301") !== -1) {
+          return parseFloat($("#cuttingCostStainless").val()) || 0;
+        } else if (material.indexOf("1.0038") !== -1 || material.indexOf("st37") !== -1) {
+          return parseFloat($("#cuttingCostBlack").val()) || 0;
+        } else if (material.indexOf("aluminium") !== -1) {
+          return parseFloat($("#cuttingCostAluminium").val()) || 0;
+        }
+        return parseFloat($("#cuttingCostBlack").val()) || 0;
+      }
+
+      function getMaterialRate(material) {
+        material = material.toLowerCase();
+        if (material.indexOf("1.4301") !== -1) {
+          return parseFloat($("#materialCostStainless").val()) || 0;
+        } else if (material.indexOf("1.0038") !== -1 || material.indexOf("st37") !== -1) {
+          return parseFloat($("#materialCostBlack").val()) || 0;
+        } else if (material.indexOf("aluminium") !== -1) {
+          return parseFloat($("#materialCostAluminium").val()) || 0;
+        }
+        return parseFloat($("#materialCostBlack").val()) || 0;
+      }
+
+      // Funkcja przeliczająca koszt dla pojedynczego wiersza detalu
+      function recalcRow($row) {
+        // Pobieramy oryginalne dane: czas cięcia (w minutach) oraz wagę
+        var cutTime = parseFloat($row.data("cut-time")) || 0;
+        var weight = parseFloat($row.data("weight")) || 0;
+        // Pobieramy materiał z komórki (kolumna "Materiał" – indeks 3)
+        var material = $row.find("td").eq(3).text();
+        // Pobieramy nowe stawki z panelu bocznego
+        var newCuttingRate = getCuttingRate(material);
+        var newMaterialRate = getMaterialRate(material);
+        // Obliczamy nowe koszty:
+        var newCuttingCost = cutTime * newCuttingRate;
+        var newMaterialCost = weight * newMaterialRate;
+        // Obliczamy koszt podstawowy
+        var baseCost = newCuttingCost + newMaterialCost;
+        // Pobieramy ilość gięć wpisaną przez użytkownika (pole edytowalne w kolumnie "Ilość gięć")
+        var bendingCount = parseFloat($row.find("input.bending-input").val()) || 0;
+        // Pobieramy koszt jednego gięcia z panelu bocznego
+        var bendingCost = parseFloat($("#bendingCostSum").val()) || 0;
+        // Nowy koszt detalu to koszt podstawowy + koszt gięć
+        var newDetailCost = baseCost + (bendingCount * bendingCost);
+
+        // Aktualizujemy komórki:
+        // Kolumna "Koszt cięcia" – indeks 10
+        $row.find("td").eq(10).text(newCuttingCost.toFixed(2));
+        // Kolumna "Koszt materiału" – indeks 11
+        $row.find("td").eq(11).text(newMaterialCost.toFixed(2));
+        // Kolumna "Koszt detalu" – indeks 12
+        $row.find("td").eq(12).text(newDetailCost.toFixed(2));
+        // Pobieramy ilość sztuk (kolumna "Ilość" – indeks 9)
+        var quantity = parseFloat($row.find("td").eq(9).text()) || 1;
+        // Kolumna "Całkowity koszt" – indeks 13
+        $row.find("td").eq(13).text((newDetailCost * quantity).toFixed(2));
+      }
+
+      // Funkcja przeliczająca wszystkie wiersze tabeli detali
+      function recalcAllRows() {
+        $("#detailsTableBody tr").each(function(){
+          recalcRow($(this));
+        });
+      }
+
+      // Funkcja updateConfig wysyła nowe wartości z panelu do serwera i przelicza koszty
+      function updateConfig() {
+        var newConfig = {
+          cutting_costs: {
+            stal_czarna: parseFloat($("#cuttingCostBlack").val()),
+            stal_nierdzewna: parseFloat($("#cuttingCostStainless").val()),
+            aluminium: parseFloat($("#cuttingCostAluminium").val())
+          },
+          material_costs: {
+            stal_czarna: parseFloat($("#materialCostBlack").val()),
+            stal_nierdzewna: parseFloat($("#materialCostStainless").val()),
+            aluminium: parseFloat($("#materialCostAluminium").val())
+          },
+          suma_kosztow_giecia: parseFloat($("#bendingCostSum").val())
+        };
+        $.ajax({
+          url: '/update_config',
+          type: 'POST',
+          data: JSON.stringify(newConfig),
+          contentType: 'application/json',
+          success: function(response) {
+            console.log("Konfiguracja zaktualizowana:", response);
+            // Po aktualizacji przeliczamy wszystkie wiersze
+            recalcAllRows();
+          },
+          error: function(xhr, status, error) {
+            console.error("Błąd przy aktualizacji konfiguracji:", error);
+          }
+        });
+      }
+
+      // Nasłuchujemy zmian w polach formularza panelu bocznego
+      $("#pricingForm input").on("change", function() {
+        updateConfig();
+      });
+
+      // Nasłuchiwanie zmian w polach "Ilość gięć" w tabeli detali
+      $(document).on("change", ".bending-input", function(){
+        var $row = $(this).closest("tr");
+        recalcRow($row);
       });
     </script>
   </body>

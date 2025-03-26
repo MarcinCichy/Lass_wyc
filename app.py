@@ -24,6 +24,7 @@ def serialize_program(program):
             "dimensions": d.dimensions,
             "dim_x": dim_x,
             "dim_y": dim_y,
+            "bending_count": 0,   # Nowe pole: ilość gięć, domyślnie 0
             "cut_time": d.cut_time,
             "quantity": d.quantity,
             "cutting_cost": d.cutting_cost(config, program.material),
