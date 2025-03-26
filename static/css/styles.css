@@ -208,3 +208,13 @@ input[type="checkbox"].detailCheckbox {
 .h-100 {
   height: 100%;
 }
+
+body.light-theme table th,
+body.light-theme table td {
+    color: #000; /* lub inny ciemny kolor */
+}
+
+/* Ustawia kolor tekstu w inputach kolumny "Ilość gięć" tak, aby dziedziczył kolor z otaczających komórek */
+input.bending-input {
+    color: inherit !important;
+}

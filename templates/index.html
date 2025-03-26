@@ -223,12 +223,15 @@
             $("#themeStylesheet").attr("href", "https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/flatly/bootstrap.min.css");
             $("#themeIcon").text("☾");
             $("#themeToggle").data("darkTheme", false);
+            $("body").addClass("light-theme");  // Dodajemy klasę dla jasnego motywu
           } else {
             $("#themeStylesheet").attr("href", "https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/darkly/bootstrap.min.css");
             $("#themeIcon").text("☀");
             $("#themeToggle").data("darkTheme", true);
+            $("body").removeClass("light-theme");  // Usuwamy klasę przy powrocie do ciemnego motywu
           }
         });
+
         $("#fileInput").change(function(){
           var fileName = $(this).val().split("\\").pop();
           var programId = generateProgramId();
