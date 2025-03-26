@@ -12,16 +12,32 @@ class Detail:
     weight: float      # waga detalu [kg]
     image_path: Optional[str] = None  # ścieżka do obrazka (BMP) detalu
 
-    def cutting_cost(self, config: dict) -> float:
-        rate_per_minute = config.get("rate_per_minute", 5.0)
-        return round(self.cut_time * rate_per_minute, 2)
+    def cutting_cost(self, config: dict, material: str) -> float:
+        material_lower = material.lower()
+        if "1.4301" in material_lower:
+            rate = config.get("cutting_costs", {}).get("stal_nierdzewna", 6.0)
+        elif "1.0038" in material_lower or "st37" in material_lower:
+            rate = config.get("cutting_costs", {}).get("stal_czarna", 5.0)
+        elif "aluminium" in material_lower:
+            rate = config.get("cutting_costs", {}).get("aluminium", 4.5)
+        else:
+            rate = config.get("cutting_costs", {}).get("stal_czarna", 5.0)
+        return round(self.cut_time * rate, 2)
 
-    def material_cost(self, config: dict) -> float:
-        material_cost_per_kg = config.get("material_cost_per_kg", 2.5)
-        return round(self.weight * material_cost_per_kg, 2)
+    def material_cost(self, config: dict, material: str) -> float:
+        material_lower = material.lower()
+        if "1.4301" in material_lower:
+            cost = config.get("material_costs", {}).get("stal_nierdzewna", 3.0)
+        elif "1.0038" in material_lower or "st37" in material_lower:
+            cost = config.get("material_costs", {}).get("stal_czarna", 2.5)
+        elif "aluminium" in material_lower:
+            cost = config.get("material_costs", {}).get("aluminium", 1.5)
+        else:
+            cost = config.get("material_costs", {}).get("stal_czarna", 2.5)
+        return round(self.weight * cost, 2)
 
-    def total_cost(self, config: dict) -> float:
-        return round(self.cutting_cost(config) + self.material_cost(config), 2)
+    def total_cost(self, config: dict, material: str) -> float:
+        return round(self.cutting_cost(config, material) + self.material_cost(config, material), 2)
 
 @dataclass
 class Program:
@@ -37,7 +53,9 @@ class Program:
         return sum(detail.cut_time * detail.quantity for detail in self.details)
 
     def total_cost(self, config: dict) -> float:
-        return round(sum(detail.total_cost(config) * detail.quantity for detail in self.details), 2)
+        details_cost = sum(detail.total_cost(config, self.material) * detail.quantity for detail in self.details)
+        bending_cost = config.get("suma_kosztow_giecia", 0.0)
+        return round(details_cost + bending_cost, 2)
 
     def add_detail(self, detail: Detail):
         self.details.append(detail)

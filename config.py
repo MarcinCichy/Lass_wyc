@@ -4,9 +4,17 @@ import os
 CONFIG_FILE = "config.json"
 
 default_config = {
-    "rate_per_minute": 5.0,      # stawka za minutę cięcia (PLN)
-    "material_cost_per_kg": 2.5, # koszt materiału za kilogram (PLN)
-    "currency": "PLN"
+    "cutting_costs": {
+        "stal_czarna": 5.0,
+        "stal_nierdzewna": 6.0,
+        "aluminium": 4.5
+    },
+    "material_costs": {
+        "stal_czarna": 2.5,
+        "stal_nierdzewna": 3.0,
+        "aluminium": 1.5
+    },
+    "suma_kosztow_giecia": 0.0
 }
 
 def load_config() -> dict:

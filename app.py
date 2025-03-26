@@ -3,7 +3,7 @@ import os
 import ntpath
 from html_parser import parse_html
 from pdf_parser import parse_pdf
-from config import load_config
+from config import load_config, save_config
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
@@ -19,17 +19,17 @@ def serialize_program(program):
         dim_x = dims[0].strip() if len(dims) >= 1 else ""
         dim_y = dims[1].strip() if len(dims) >= 2 else ""
         detail_dict = {
-            "image_path": d.image_path,  # Upewnij się, że obrazki są dostępne w folderze static lub dostosuj ścieżkę
+            "image_path": d.image_path,
             "name": d.name,
             "dimensions": d.dimensions,
             "dim_x": dim_x,
             "dim_y": dim_y,
             "cut_time": d.cut_time,
             "quantity": d.quantity,
-            "cutting_cost": d.cutting_cost(config),
-            "material_cost": d.material_cost(config),
-            "total_cost": d.total_cost(config),
-            "total_cost_quantity": d.total_cost(config) * d.quantity
+            "cutting_cost": d.cutting_cost(config, program.material),
+            "material_cost": d.material_cost(config, program.material),
+            "total_cost": d.total_cost(config, program.material),
+            "total_cost_quantity": d.total_cost(config, program.material) * d.quantity
         }
         details.append(detail_dict)
     return {
@@ -38,7 +38,8 @@ def serialize_program(program):
         "thicknes": program.thicknes,
         "machine_time": program.machine_time,
         "program_counts": program.program_counts,
-        "details": details
+        "details": details,
+        "total_cost": program.total_cost(config)
     }
 
 @app.route('/')
@@ -65,6 +66,18 @@ def upload():
 
     program_data = serialize_program(program)
     return jsonify(program_data)
+
+@app.route('/update_config', methods=['POST'])
+def update_config():
+    data = request.json
+    if not data:
+        return jsonify({"error": "Brak danych"}), 400
+    # Zapisujemy nową konfigurację do pliku
+    save_config(data)
+    # Aktualizujemy globalną konfigurację
+    global config
+    config = load_config()
+    return jsonify({"success": True, "config": config})
 
 if __name__ == '__main__':
     app.run(debug=True)
