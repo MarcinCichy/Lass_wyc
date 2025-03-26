@@ -34,17 +34,18 @@ if not os.path.exists(TEMP_IMAGE_DIR):
 
 def copy_image_to_static(image_path: str) -> str:
     """
-    Kopiuje lub konwertuje plik obrazu z podanej ścieżki do katalogu static/images.
+    Kopiuje lub konwertuje plik obrazu z podanej ścieżki do TEMP_IMAGE_DIR (static/images/generated).
     Jeśli obraz jest w formacie BMP, konwertuje go do PNG.
-    Zwraca URL względny, np. "static/images/nazwa_pliku_unikalna.png".
+    Zwraca URL względny, np. "static/images/generated/nazwa_pliku_unikalna.png".
     """
-    dest_dir = os.path.join(os.getcwd(), 'static', 'images')
+    # Używamy TEMP_IMAGE_DIR jako docelowego katalogu
+    dest_dir = TEMP_IMAGE_DIR
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
     base_name = os.path.basename(image_path)
     name, ext = os.path.splitext(base_name)
 
-    # Jeśli obraz jest BMP, konwertuj go do PNG
+    # Jeśli obraz jest BMP, konwertuj do PNG
     if ext.lower() == ".bmp":
         try:
             img = Image.open(image_path)
@@ -62,7 +63,8 @@ def copy_image_to_static(image_path: str) -> str:
         dest_path = os.path.join(dest_dir, unique_name)
         shutil.copy(image_path, dest_path)
 
-    return "static/images/" + unique_name
+    # Zwracamy ścieżkę względną, uwzględniając folder "generated"
+    return os.path.join("static", "images", "generated", unique_name)
 
 def clear_generated_images():
     """
