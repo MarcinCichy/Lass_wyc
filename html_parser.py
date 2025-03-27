@@ -77,10 +77,8 @@ def parse_html(file_path: str) -> Program:
             i = 0
             while i < len(rows):
                 tds = rows[i].find_all('td')
-                # Sprawdzamy, czy w drugiej komórce jest napis "NUMER CZĘŚCI:" – to początek bloku detalu
                 if len(tds) >= 2 and "NUMER CZĘŚCI:" in tds[1].get_text(strip=True):
                     detail_data = {}
-                    # Pobieramy obrazek z pierwszej komórki
                     img_tag = tds[0].find("img")
                     if img_tag and img_tag.has_attr("src"):
                         image_src = img_tag["src"].strip()
@@ -97,24 +95,22 @@ def parse_html(file_path: str) -> Program:
                             print("File not found after normalization.")
                     else:
                         image_path = None
-                    # Parsujemy pozostałe dane detalu (przyjmujemy blok około 15 wierszy)
                     for j in range(i, min(i + 15, len(rows))):
                         cells = rows[j].find_all('td')
                         if len(cells) < 2:
                             continue
                         key = cells[0].get_text(strip=True)
                         value = cells[1].get_text(strip=True)
-                        if key == "NAZWA PLIKU GEO:":
+                        if key.upper().startswith("NAZWA PLIKU GEO:"):
                             value = ntpath.basename(value)
                             value_pure = ntpath.splitext(value)[0]
                             detail_data["geo_file"] = value_pure
-                        elif key == "ILOŚĆ:":
+                        elif key.upper().startswith("ILOŚĆ:"):
                             try:
                                 detail_data["quantity"] = int(value)
                             except ValueError:
                                 detail_data["quantity"] = 1
-                        elif key == "WYMIARY:":
-                            # Zaokrąglamy wymiary do dwóch miejsc po przecinku
+                        elif key.upper().startswith("WYMIARY:"):
                             m = re.match(r"([\d,\.]+)\s*x\s*([\d,\.]+)", value)
                             if m:
                                 x = float(m.group(1).replace(',', '.'))
@@ -122,16 +118,18 @@ def parse_html(file_path: str) -> Program:
                                 detail_data["dimensions"] = f"{x:.2f} x {y:.2f} mm"
                             else:
                                 detail_data["dimensions"] = value
-                        elif key == "CZAS OBRÓBKI:" and value.endswith("min"):
-                            try:
-                                minutes = float(value.replace("min", "").strip())
-                                detail_data["cut_time"] = round(minutes / 60.0, 2)
-                            except ValueError:
+                        elif key.upper().startswith("CZAS OBRÓBKI:") and value.endswith("min"):
+                            m = re.search(r'([\d\.]+)\s*min', value, re.IGNORECASE)
+                            if m:
+                                minutes = float(m.group(1))
+                                detail_data["cut_time"] = round(minutes / 60.0, 4)
+                            else:
                                 detail_data["cut_time"] = 0.0
-                        elif key == "CIEŻAR:" and value.endswith("kg"):
-                            try:
-                                detail_data["weight"] = float(value.replace("kg", "").replace(',', '.').strip())
-                            except ValueError:
+                        elif key.upper().startswith("CIĘŻAR:") and value.endswith("kg"):
+                            m = re.search(r'([\d,\.]+)\s*kg', value, re.IGNORECASE)
+                            if m:
+                                detail_data["weight"] = float(m.group(1).replace(',', '.'))
+                            else:
                                 detail_data["weight"] = 0.0
                     if ("geo_file" in detail_data and "quantity" in detail_data and
                         "dimensions" in detail_data and "cut_time" in detail_data):
@@ -147,7 +145,7 @@ def parse_html(file_path: str) -> Program:
                             image_path=image_path if image_path and os.path.exists(image_path) else None
                         )
                         details.append(detail)
-                    i += 15  # pomijamy cały blok detalu
+                    i += 15
                 else:
                     i += 1
 

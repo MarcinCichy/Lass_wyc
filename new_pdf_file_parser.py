@@ -54,26 +54,31 @@ def parse_detail_section(section_text: str) -> Detail:
     except Exception:
         quantity = 1
 
-    # Czas obróbki – poszukujemy formatu HH:MM:SS
+    # Czas obróbki – szukamy formatu HH:MM:SS
     time_match = re.search(r'(\d{2}:\d{2}:\d{2})', text)
     cut_time = 0
     if time_match:
         time_str = time_match.group(1)
         try:
             h, m, s = time_str.split(":")
-            cut_time = round((int(h) * 3600 + int(m) * 60 + int(s)) / 3600.0, 2)
+            # Obliczamy całkowite sekundy, zaokrąglamy do najbliższej sekundy i konwertujemy na godziny
+            total_seconds = int(round(int(h) * 3600 + int(m) * 60 + float(s)))
+            cut_time = total_seconds / 3600.0
         except Exception:
             cut_time = 0
-    # Jeśli nie znaleziono formatu HH:MM:SS, można ewentualnie szukać wartości kończącej się na "min"
     elif text.strip().endswith("min"):
         try:
             minutes = float(text.replace("min", "").strip())
-            cut_time = round(minutes / 60.0, 2)
+            total_seconds = int(round(minutes * 60))
+            cut_time = total_seconds / 3600.0
         except Exception:
             cut_time = 0
 
-    # Masa detalu – szukamy wartości zakończonej "kg"
+    # Masa detalu – szukamy wartości zakończonej "kg" w etykiecie "Masa detalu:"
     weight_match = re.search(r'Masa detalu:\s*([\d,\.]+)\s*kg', text, re.IGNORECASE)
+    if not weight_match:
+        # Jeśli nie znalazło, spróbuj ogólnego wzorca
+        weight_match = re.search(r'([\d,\.]+)\s*kg', text, re.IGNORECASE)
     if weight_match:
          try:
              weight = float(weight_match.group(1).replace(',', '.'))

@@ -1,7 +1,7 @@
 {
     "cutting_costs": {
         "stal_czarna": 10,
-        "stal_nierdzewna": 15,
+        "stal_nierdzewna": 10,
         "aluminium": 20
     },
     "material_costs": {

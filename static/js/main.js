@@ -153,69 +153,71 @@ $(document).ready(function() {
   });
 
   // Obsługa uploadu pliku
-  $("#fileInput").change(function(){
-    var fileName = $(this).val().split("\\").pop();
-    var programId = generateProgramId();
-    $("#loading").show();
-    var file = $(this)[0].files[0];
-    if (!file) return;
-    var formData = new FormData();
-    formData.append("file", file);
-    $.ajax({
-      url: '/upload',
-      type: 'POST',
-      data: formData,
-      contentType: false,
-      processData: false,
-      success: function(response) {
-        $("#loading").hide();
-        var programsTbody = $("#programsTableBody");
-        var progRow = "<tr data-program-id='" + programId + "'>";
-        progRow += "<td><button class='btn btn-danger btn-sm remove-program' data-program-id='" + programId + "'>-</button></td>";
-        progRow += "<td>" + (response.name || "") + "</td>";
-        progRow += "<td>" + (response.material || "") + "</td>";
-        progRow += "<td>" + (response.thicknes || "") + "</td>";
-        progRow += "<td>" + (response.machine_time || "") + "</td>";
-        progRow += "<td>" + (response.program_counts || "") + "</td>";
-        progRow += "</tr>";
-        programsTbody.append(progRow);
-        var detailsTbody = $("#detailsTableBody");
-        response.details.forEach(function(detail) {
-          // Dodajemy dane źródłowe (cut_time, weight) jako atrybuty do tr
-          var detailRow = "<tr data-program-id='" + programId + "' data-cut-time='" + detail.cut_time + "' data-weight='" + detail.weight + "'>";
-          detailRow += "<td><input type='checkbox' class='detailCheckbox' checked></td>";
-          if(detail.image_path) {
-            detailRow += "<td><img src='" + detail.image_path + "' alt='Rysunek' style='max-width:100px;'></td>";
-          } else {
-            detailRow += "<td></td>";
-          }
-          detailRow += "<td>" + detail.name + "</td>";
-          detailRow += "<td>" + (response.material || "") + "</td>";
-          detailRow += "<td>" + (response.thicknes || "") + "</td>";
-          detailRow += "<td>" + (detail.dim_x || "") + "</td>";
-          detailRow += "<td>" + (detail.dim_y || "") + "</td>";
-          // Nowa kolumna: Waga (zaokrąglona do dwóch miejsc)
-          detailRow += "<td>" + parseFloat(detail.weight).toFixed(2) + "</td>";
-          // Kolumna "Ilość gięć" – edytowalne pole z min="0"
-          detailRow += "<td><input type='number' class='bending-input' value='0' min='0' style='width:100%; background:inherit; border:none; text-align:center;'/></td>";
-          // Czas cięcia – konwertujemy z godzin (cut_time) na sekundy dla formatu HH:MM:SS
-          detailRow += "<td>" + formatSecondsToHMS(detail.cut_time * 3600) + "</td>";
-          detailRow += "<td>" + detail.quantity + "</td>";
-          detailRow += "<td>" + (detail.cutting_cost || "") + "</td>";
-          detailRow += "<td>" + (detail.material_cost || "") + "</td>";
-          detailRow += "<td>" + (detail.total_cost || "") + "</td>";
-          detailRow += "<td>" + (detail.total_cost_quantity || "") + "</td>";
-          detailRow += "</tr>";
-          detailsTbody.append(detailRow);
-        });
-        $("#detailsTable").colResizable({ liveDrag: true });
-      },
-      error: function(xhr) {
-        $("#loading").hide();
-        alert("Wystąpił błąd: " + xhr.responseJSON.error);
-      }
+    $("#fileInput").change(function(){
+      var fileName = $(this).val().split("\\").pop();
+      var programId = generateProgramId();
+      $("#loading").show();
+      var file = $(this)[0].files[0];
+      if (!file) return;
+      var formData = new FormData();
+      formData.append("file", file);
+      $.ajax({
+        url: '/upload',
+        type: 'POST',
+        data: formData,
+        contentType: false,
+        processData: false,
+        success: function(response) {
+          $("#loading").hide();
+          var programsTbody = $("#programsTableBody");
+          var progRow = "<tr data-program-id='" + programId + "'>";
+          progRow += "<td><button class='btn btn-danger btn-sm remove-program' data-program-id='" + programId + "'>-</button></td>";
+          progRow += "<td>" + (response.name || "") + "</td>";
+          progRow += "<td>" + (response.material || "") + "</td>";
+          progRow += "<td>" + (response.thicknes || "") + "</td>";
+          progRow += "<td>" + (response.machine_time || "") + "</td>";
+          progRow += "<td>" + (response.program_counts || "") + "</td>";
+          progRow += "</tr>";
+          programsTbody.append(progRow);
+          var detailsTbody = $("#detailsTableBody");
+          response.details.forEach(function(detail) {
+            // Generowanie wiersza detalu – dane źródłowe (cut_time, weight) zapisane jako atrybuty
+            var detailRow = "<tr data-program-id='" + programId + "' data-cut-time='" + detail.cut_time + "' data-weight='" + detail.weight + "'>";
+            detailRow += "<td><input type='checkbox' class='detailCheckbox' checked></td>";
+            if(detail.image_path) {
+              detailRow += "<td><img src='" + detail.image_path + "' alt='Rysunek' style='max-width:100px;'></td>";
+            } else {
+              detailRow += "<td></td>";
+            }
+            detailRow += "<td>" + detail.name + "</td>";
+            detailRow += "<td>" + (response.material || "") + "</td>";
+            detailRow += "<td>" + (response.thicknes || "") + "</td>";
+            detailRow += "<td>" + (detail.dim_x || "") + "</td>";
+            detailRow += "<td>" + (detail.dim_y || "") + "</td>";
+            // Nowa kolumna: Waga
+            detailRow += "<td>" + parseFloat(detail.weight).toFixed(2) + "</td>";
+            // Kolumna "Ilość gięć"
+            detailRow += "<td><input type='number' class='bending-input' value='0' min='0' style='width:100%; background:inherit; border:none; text-align:center;'/></td>";
+            // Czas cięcia – format HH:MM:SS (cut_time w godzinach * 3600)
+            detailRow += "<td>" + formatSecondsToHMS(detail.cut_time * 3600) + "</td>";
+            detailRow += "<td>" + detail.quantity + "</td>";
+            detailRow += "<td>" + (detail.cutting_cost || "") + "</td>";
+            detailRow += "<td>" + (detail.material_cost || "") + "</td>";
+            detailRow += "<td>" + (detail.total_cost || "") + "</td>";
+            detailRow += "<td>" + (detail.total_cost_quantity || "") + "</td>";
+            detailRow += "</tr>";
+            detailsTbody.append(detailRow);
+          });
+          // <-- Dodajemy przeliczenie wszystkich wierszy zaraz po wstawieniu danych
+          recalcAllRows();
+          $("#detailsTable").colResizable({ liveDrag: true });
+        },
+        error: function(xhr) {
+          $("#loading").hide();
+          alert("Wystąpił błąd: " + xhr.responseJSON.error);
+        }
+      });
     });
-  });
 
   $(document).on("click", ".remove-program", function(){
     var programId = $(this).data("program-id");
