@@ -9,6 +9,7 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# Wczytanie konfiguracji przy starcie aplikacji
 config = load_config()
 
 def serialize_program(program):
@@ -24,9 +25,10 @@ def serialize_program(program):
             "dimensions": d.dimensions,
             "dim_x": dim_x,
             "dim_y": dim_y,
-            "bending_count": 0,   # Nowe pole: ilość gięć, domyślnie 0
+            "bending_count": 0,   # Domyślnie 0
             "cut_time": d.cut_time,
             "quantity": d.quantity,
+            "weight": d.weight,   # Wartość potrzebna do obliczenia kosztu materiału
             "cutting_cost": d.cutting_cost(config, program.material),
             "material_cost": d.material_cost(config, program.material),
             "total_cost": d.total_cost(config, program.material),
@@ -79,6 +81,11 @@ def update_config():
     global config
     config = load_config()
     return jsonify({"success": True, "config": config})
+
+@app.route('/get_config', methods=['GET'])
+def get_config():
+    # Zwraca aktualną konfigurację jako JSON
+    return jsonify(config)
 
 if __name__ == '__main__':
     app.run(debug=True)
