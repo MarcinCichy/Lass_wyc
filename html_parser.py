@@ -122,7 +122,8 @@ def parse_html(file_path: str) -> Program:
                             m = re.search(r'([\d\.]+)\s*min', value, re.IGNORECASE)
                             if m:
                                 minutes = float(m.group(1))
-                                detail_data["cut_time"] = round(minutes / 60.0, 4)
+                                seconds = int(round(minutes * 60))
+                                detail_data["cut_time"] = seconds / 3600.0
                             else:
                                 detail_data["cut_time"] = 0.0
                         elif key.upper().startswith("CIĘŻAR:") and value.endswith("kg"):

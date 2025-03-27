@@ -6,9 +6,11 @@ from utils import copy_image_to_static
 def parse_pdf_old(doc, full_text: str) -> Program:
     """
     Parsuje plik PDF starego typu – dodatkowo wyodrębnia:
-      - czas obróbki z etykiety "CZAS OBRÓBKI:" (w minutach) i przelicza na godziny, zaokrąglając do 4 miejsc,
-      - wagę detalu z etykiety "CIĘŻAR:" (wartość zakończona "kg"),
-      - wymiary zaokrąglone do dwóch miejsc po przecinku.
+      - czas obróbki z etykiety "CZAS OBRÓBKI:" (wartość w minutach) przeliczany na godziny,
+        przy czym najpierw przeliczamy minuty na sekundy (zaokrąglając do najbliższej sekundy),
+        a następnie dzielimy przez 3600.
+      - wagę detalu z etykiety "CIĘŻAR:" (wartość zakończona "kg").
+      Wymiary są zaokrąglane do dwóch miejsc po przecinku.
     """
     program_name_full = find_field(full_text, "NAZWA PROGRAMU")
     program_name = program_name_full[:-2] if len(program_name_full) >= 2 else program_name_full
@@ -71,27 +73,20 @@ def parse_pdf_old(doc, full_text: str) -> Program:
         else:
             dimensions = raw_dimensions
         cut_time_str = find_in_section(sec, "CZAS OBRÓBKI")
-        if cut_time_str.endswith("min"):
-            try:
-                m = re.search(r'([\d\.]+)\s*min', cut_time_str, re.IGNORECASE)
-                if m:
-                    minutes = float(m.group(1))
-                    cut_time = round(minutes / 60.0, 4)
-                else:
-                    cut_time = 0.0
-            except (ValueError, IndexError):
-                cut_time = 0.0
+        # Usuwamy dodatkowe teksty, wyciągamy tylko liczbę przed "min"
+        m = re.search(r'([\d\.]+)\s*min', cut_time_str, re.IGNORECASE)
+        if m:
+            minutes = float(m.group(1))
+            total_seconds = int(round(minutes * 60))
+            cut_time = total_seconds / 3600.0
         else:
             cut_time = 0.0
         weight_str = find_in_section(sec, "CIĘŻAR")
         if weight_str.endswith("kg"):
-            try:
-                m = re.search(r'([\d,\.]+)\s*kg', weight_str, re.IGNORECASE)
-                if m:
-                    weight = float(m.group(1).replace(',', '.'))
-                else:
-                    weight = 0.0
-            except Exception:
+            m = re.search(r'([\d,\.]+)\s*kg', weight_str, re.IGNORECASE)
+            if m:
+                weight = float(m.group(1).replace(',', '.'))
+            else:
                 weight = 0.0
         else:
             weight = 0.0
