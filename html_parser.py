@@ -84,11 +84,9 @@ def parse_html(file_path: str) -> Program:
                     img_tag = tds[0].find("img")
                     if img_tag and img_tag.has_attr("src"):
                         image_src = img_tag["src"].strip()
-                        # Normalizujemy nazwę (usuwa nadmiarowe białe znaki)
                         image_src_norm = normalize_filename(image_src)
                         base = os.path.basename(image_src_norm)
                         directory = os.path.dirname(file_path)
-                        # Przeszukujemy katalog (rekursywnie), aby znaleźć plik (porównanie case-insensitive)
                         original_image_path = find_file_recursive(directory, base)
                         print(f"Normalized image path: {repr(original_image_path)}")
                         if original_image_path and os.path.exists(original_image_path):
@@ -116,12 +114,25 @@ def parse_html(file_path: str) -> Program:
                             except ValueError:
                                 detail_data["quantity"] = 1
                         elif key == "WYMIARY:":
-                            detail_data["dimensions"] = value
-                        elif key == "CZAS OBRÓBKI:":
+                            # Zaokrąglamy wymiary do dwóch miejsc po przecinku
+                            m = re.match(r"([\d,\.]+)\s*x\s*([\d,\.]+)", value)
+                            if m:
+                                x = float(m.group(1).replace(',', '.'))
+                                y = float(m.group(2).replace(',', '.'))
+                                detail_data["dimensions"] = f"{x:.2f} x {y:.2f} mm"
+                            else:
+                                detail_data["dimensions"] = value
+                        elif key == "CZAS OBRÓBKI:" and value.endswith("min"):
                             try:
-                                detail_data["cut_time"] = float(value[:5])
+                                minutes = float(value.replace("min", "").strip())
+                                detail_data["cut_time"] = round(minutes / 60.0, 2)
                             except ValueError:
                                 detail_data["cut_time"] = 0.0
+                        elif key == "CIEŻAR:" and value.endswith("kg"):
+                            try:
+                                detail_data["weight"] = float(value.replace("kg", "").replace(',', '.').strip())
+                            except ValueError:
+                                detail_data["weight"] = 0.0
                     if ("geo_file" in detail_data and "quantity" in detail_data and
                         "dimensions" in detail_data and "cut_time" in detail_data):
                         detail_data.setdefault("cut_length", 0.0)

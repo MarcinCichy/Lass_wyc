@@ -3,10 +3,12 @@ from models import Program, Detail
 from pdf_utils import find_field, find_in_section, extract_all_detail_images, extract_detail_name, find_multiline_field
 from utils import copy_image_to_static
 
-
 def parse_pdf_old(doc, full_text: str) -> Program:
     """
-    Dotychczasowa logika parsowania – niezmieniona dla plików starych.
+    Dotychczasowa logika parsowania – zmodyfikowana o:
+      - przeliczanie czasu obróbki (wartość w minutach) na godziny (zaokrąglane do dwóch miejsc),
+      - pobieranie wagi z etykiety "CIEŻAR:" (wartość zakończona "kg"),
+      - zaokrąglanie wymiarów do dwóch miejsc po przecinku.
     """
     program_name_full = find_field(full_text, "NAZWA PROGRAMU")
     program_name = program_name_full[:-2] if len(program_name_full) >= 2 else program_name_full
@@ -29,7 +31,6 @@ def parse_pdf_old(doc, full_text: str) -> Program:
     except (ValueError, UnboundLocalError):
         thicknes = 0.0
 
-    # Tymczasowe wypisanie pól dla starego PDF
     print("Stary PDF:")
     print("1. NAZWA PROGRAMU:", program_name)
     print("2. MATERIAŁ (ARKUSZ):", material)
@@ -61,15 +62,33 @@ def parse_pdf_old(doc, full_text: str) -> Program:
             quantity = int(quantity)
         except ValueError:
             quantity = 1
-        dimensions = find_in_section(sec, "WYMIARY")
+        raw_dimensions = find_in_section(sec, "WYMIARY")
+        m = re.match(r"([\d,\.]+)\s*x\s*([\d,\.]+)", raw_dimensions)
+        if m:
+            x = float(m.group(1).replace(',', '.'))
+            y = float(m.group(2).replace(',', '.'))
+            dimensions = f"{x:.2f} x {y:.2f} mm"
+        else:
+            dimensions = raw_dimensions
         cut_time_str = find_in_section(sec, "CZAS OBRÓBKI")
-        try:
-            cut_time = float(cut_time_str.split()[0])
-        except (ValueError, IndexError):
+        if cut_time_str.endswith("min"):
+            try:
+                minutes = float(cut_time_str.replace("min", "").strip())
+                cut_time = round(minutes / 60.0, 2)
+            except (ValueError, IndexError):
+                cut_time = 0.0
+        else:
             cut_time = 0.0
+        weight_str = find_in_section(sec, "CIEŻAR")
+        if weight_str.endswith("kg"):
+            try:
+                weight = float(weight_str.replace("kg", "").replace(',', '.').strip())
+            except Exception:
+                weight = 0.0
+        else:
+            weight = 0.0
 
         cut_length = 0.0
-        weight = 0.0
 
         if image_index < len(images):
             original_image_path = images[image_index]
@@ -82,7 +101,8 @@ def parse_pdf_old(doc, full_text: str) -> Program:
         print("   NAZWA PLIKU GEO:", geo_name)
         print("   ILOŚĆ:", quantity)
         print("   WYMIARY:", dimensions)
-        print("   CZAS OBRÓBKI:", cut_time)
+        print("   CZAS OBRÓBKI (godz):", cut_time)
+        print("   WAGA (kg):", weight)
         detail_counter += 1
 
         detail = Detail(

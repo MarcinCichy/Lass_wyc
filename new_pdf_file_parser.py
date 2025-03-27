@@ -3,50 +3,49 @@ from models import Program, Detail
 from pdf_utils import find_field, find_in_section, extract_all_detail_images
 from utils import copy_image_to_static
 
-
 def parse_detail_section(section_text: str) -> Detail:
     """
     Parsuje blok tekstu z informacjami o detalu.
-
-    Próbuje wyłuskać pełną nazwę detalu (wraz ze spacjami) na podstawie
-    fragmentu tekstu po etykiecie "Plik geo:" - oczekujemy wzorca, że
-    nazwa będzie miała postać "coś .geo". Usuwamy końcówkę ".geo",
-    a pozostałą część przyjmujemy jako nazwę detalu.
-
-    Dodatkowo wyodrębnia:
-      - wymiary (np. "60,00 x 78,00 mm"),
-      - ilość (Szt.:) – pierwszą liczbę po etykiecie "Szt.:",
-      - czas obróbki w formacie HH:MM:SS, konwertowany na sekundy.
-    Jeśli którejś wartości nie znajdzie, ustawia wartość domyślną.
+    Wyodrębnia nazwę, wymiary, ilość, czas obróbki oraz masę detalu.
+    Czas obróbki (w formacie HH:MM:SS) jest przeliczany na godziny,
+    a masa detalu (z etykiety "Masa detalu:") jest interpretowana jako kg.
+    Wymiary są zaokrąglane do dwóch miejsc po przecinku.
     """
     text = section_text.strip()
 
-    # Szukamy fragmentu zaczynającego się od "Plik geo:" i kończącego na ".geo"
+    # Nazwa detalu
     det_name = ""
     match = re.search(r'Plik\s+geo:\s*(.+?\.geo)', text, re.IGNORECASE)
     if match:
         full_name = match.group(1).strip()
-        # Usuń końcówkę ".geo"
         if full_name.lower().endswith(".geo"):
             det_name = full_name[:-4].strip()
         else:
             det_name = full_name
-    # Jeśli nie znaleziono, można spróbować innego podejścia, np. przeszukać wszystkie dopasowania
     if not det_name:
         geo_matches = re.findall(r'([^\n]+?\.geo)', text, re.IGNORECASE)
         if geo_matches:
-            # Przyjmujemy ostatni dopasowany ciąg
             full_name = geo_matches[-1].strip()
             if full_name.lower().endswith(".geo"):
                 det_name = full_name[:-4].strip()
             else:
                 det_name = full_name
 
-    # Wyodrębniamy wymiary – np. "60,00 x 78,00 mm"
+    # Wymiary
     dims_match = re.search(r'(\d+,\d+\s*x\s*\d+,\d+\s*mm)', text, re.IGNORECASE)
-    dimensions = dims_match.group(1).strip() if dims_match else ""
+    if dims_match:
+        raw_dims = dims_match.group(1).strip()
+        m = re.match(r"([\d,\.]+)\s*x\s*([\d,\.]+)", raw_dims)
+        if m:
+            x = float(m.group(1).replace(',', '.'))
+            y = float(m.group(2).replace(',', '.'))
+            dimensions = f"{x:.2f} x {y:.2f} mm"
+        else:
+            dimensions = raw_dims
+    else:
+        dimensions = ""
 
-    # Wyodrębniamy ilość – szukamy liczby po etykiecie "Szt.:"
+    # Ilość
     qty_match = re.search(r'Szt\.:\s*(\d+)', text, re.IGNORECASE)
     if not qty_match:
         qty_match = re.search(r'^\s*(\d+)\s*$', text, re.MULTILINE)
@@ -55,16 +54,33 @@ def parse_detail_section(section_text: str) -> Detail:
     except Exception:
         quantity = 1
 
-    # Wyodrębniamy czas obróbki – format HH:MM:SS
+    # Czas obróbki – poszukujemy formatu HH:MM:SS
     time_match = re.search(r'(\d{2}:\d{2}:\d{2})', text)
     cut_time = 0
     if time_match:
         time_str = time_match.group(1)
         try:
             h, m, s = time_str.split(":")
-            cut_time = int(h) * 3600 + int(m) * 60 + int(s)
+            cut_time = round((int(h) * 3600 + int(m) * 60 + int(s)) / 3600.0, 2)
         except Exception:
             cut_time = 0
+    # Jeśli nie znaleziono formatu HH:MM:SS, można ewentualnie szukać wartości kończącej się na "min"
+    elif text.strip().endswith("min"):
+        try:
+            minutes = float(text.replace("min", "").strip())
+            cut_time = round(minutes / 60.0, 2)
+        except Exception:
+            cut_time = 0
+
+    # Masa detalu – szukamy wartości zakończonej "kg"
+    weight_match = re.search(r'Masa detalu:\s*([\d,\.]+)\s*kg', text, re.IGNORECASE)
+    if weight_match:
+         try:
+             weight = float(weight_match.group(1).replace(',', '.'))
+         except Exception:
+             weight = 0.0
+    else:
+         weight = 0.0
 
     return Detail(
         name=det_name,
@@ -72,14 +88,12 @@ def parse_detail_section(section_text: str) -> Detail:
         dimensions=dimensions,
         cut_time=cut_time,
         cut_length=0.0,
-        weight=0.0,
+        weight=weight,
         image_path=None
     )
 
-
 def parse_pdf_new(doc, full_text: str) -> Program:
     try:
-        # Łączymy tekst ze wszystkich stron korzystając z get_text("dict")
         combined_text = ""
         for page in doc:
             page_dict = page.get_text("dict")
@@ -92,7 +106,6 @@ def parse_pdf_new(doc, full_text: str) -> Program:
                 elif "text" in block:
                     combined_text += block["text"] + "\n"
 
-        # --- Dane programu:
         prog_name_match = re.search(r"Liczba detali:\s*Liczba arkuszy:\s*\n\s*(\S+)", combined_text,
                                     re.IGNORECASE | re.MULTILINE)
         program_name = prog_name_match.group(1).strip() if prog_name_match else ""
@@ -105,7 +118,6 @@ def parse_pdf_new(doc, full_text: str) -> Program:
                                    re.IGNORECASE)
         material = material_match.group(1).strip() if material_match else ""
 
-        # Grubość materiału – wyodrębniamy z ciągu w formacie "X x Y x Z mm"
         dimensions_regex = r'(\d+,\d+)\s*x\s*(\d+,\d+)\s*x\s*(\d+,\d+)\s*mm'
         dim_match = re.search(dimensions_regex, combined_text, re.IGNORECASE)
         if dim_match:
@@ -127,7 +139,6 @@ def parse_pdf_new(doc, full_text: str) -> Program:
         print("4. Ilość powtórzeń programu:", program_counts)
         print("5. GRUBOŚĆ:", thicknes)
 
-        # --- Parsowanie sekcji detali:
         if "Informacja o pojedynczych detalach/zleceniu" in combined_text:
             detail_block = combined_text.split("Informacja o pojedynczych detalach/zleceniu", 1)[1].strip()
             if "Zlecenia wykonania" in detail_block:
@@ -148,7 +159,6 @@ def parse_pdf_new(doc, full_text: str) -> Program:
                 det = parse_detail_section(sec)
                 details.append(det)
 
-        # Przypisujemy obrazy do detali, jeśli są dostępne
         images = extract_all_detail_images(doc)
         for i, det in enumerate(details):
             if i < len(images):

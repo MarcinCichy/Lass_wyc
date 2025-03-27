@@ -1,13 +1,13 @@
 {
     "cutting_costs": {
-        "stal_czarna": 10,
-        "stal_nierdzewna": 15,
-        "aluminium": 20
+        "stal_czarna": 500,
+        "stal_nierdzewna": 3,
+        "aluminium": 4
     },
     "material_costs": {
         "stal_czarna": 5,
         "stal_nierdzewna": 8,
         "aluminium": 12
     },
-    "suma_kosztow_giecia": 1
+    "suma_kosztow_giecia": 10
 }
