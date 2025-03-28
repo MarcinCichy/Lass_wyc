@@ -13,6 +13,8 @@
     <script src="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/js/bootstrap.bundle.min.js"></script>
     <!-- Plugin colResizable -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/colresizable/1.6/colResizable-1.6.min.js"></script>
+    <!-- Decimal.js (jeśli potrzebna) – umieść przed main.js -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.3.1/decimal.min.js"></script> -->
   </head>
   <body>
     <!-- Nagłówek strony – przycisk do rozwijania sidebaru -->
@@ -118,19 +120,17 @@
           <div class="card">
             <div class="card-header">Wycena:</div>
             <div class="card-body fixed-height">
-              <div class="card-body fixed-height">
-                <div id="pricingSummary">
-                  <p>Ilość detali: 0</p>
-                  <p>Łączny koszt cięcia: 0.00</p>
-                  <p>Łączny koszt materiału:</p>
-                  <ul id="materialCostBreakdown">
-                    <li>Stal czarna: 0.00</li>
-                    <li>Stal nierdzewna: 0.00</li>
-                    <li>Aluminium: 0.00</li>
-                    <li>Inne: 0.00</li>
-                  </ul>
-                  <p>Całkowita cena: 0.00</p>
-                </div>
+              <div id="pricingSummary">
+                <p>Ilość detali: 0</p>
+                <p>Łączny koszt cięcia: 0.00</p>
+                <p>Łączny koszt materiału:</p>
+                <ul id="materialCostBreakdown">
+                  <li>Stal czarna: 0.00</li>
+                  <li>Stal nierdzewna: 0.00</li>
+                  <li>Aluminium: 0.00</li>
+                  <li>Inne: 0.00</li>
+                </ul>
+                <p>Całkowita cena: 0.00</p>
               </div>
             </div>
           </div>
@@ -163,7 +163,7 @@
                   </colgroup>
                   <thead>
                     <tr>
-                      <th></th>
+                      <th><input type="checkbox" id="selectAllCheckbox" class="detailCheckbox" checked /></th>
                       <th>Rysunek</th>
                       <th>Nazwa detalu</th>
                       <th>Materiał</th>

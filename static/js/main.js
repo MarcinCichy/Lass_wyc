@@ -18,6 +18,13 @@ $(document).ready(function() {
     }
   });
 
+  // Handler dla checkboxa "select all" w nagłówku tabeli Detale
+  $(document).on("change", "#selectAllCheckbox", function() {
+    var checked = $(this).prop("checked");
+    $(".detailCheckbox").prop("checked", checked);
+    recalcSummary();
+  });
+
   function generateProgramId() {
     return 'program_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
   }
@@ -29,14 +36,6 @@ $(document).ready(function() {
     return (h < 10 ? "0" + h : h) + ":" +
            (m < 10 ? "0" + m : m) + ":" +
            (s < 10 ? "0" + s : s);
-  }
-
-  // Funkcja formatująca liczbę do dwóch miejsc po przecinku przy użyciu Intl.NumberFormat
-  function formatToTwo(num) {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(num);
   }
 
   // Funkcja do ładowania konfiguracji z backendu
@@ -124,7 +123,7 @@ $(document).ready(function() {
     return parseFloat($("#materialCostBlack").val()) || 0;
   }
 
-  // Funkcja przeliczająca koszty dla jednego wiersza detalu
+  // Funkcja przeliczająca koszty dla jednego wiersza detalu (używamy toFixed(2) dla ostatniej kolumny)
   function recalcRow($row) {
     var cutTime = parseFloat($row.data("cut-time")) || 0; // czas cięcia w godzinach
     var weight = parseFloat($row.data("weight")) || 0;
@@ -141,13 +140,13 @@ $(document).ready(function() {
     }
     var bendingCost = parseFloat($("#bendingCostSum").val()) || 0;
     var newDetailCost = baseCost + (bendingCount * bendingCost);
-    // Aktualizacja poszczególnych komórek z toFixed(2)
+    // Aktualizacja poszczególnych komórek
     $row.find("td").eq(11).text(newCuttingCost.toFixed(2));
     $row.find("td").eq(12).text(newMaterialCost.toFixed(2));
     $row.find("td").eq(13).text(newDetailCost.toFixed(2));
     var quantity = parseFloat($row.find("td").eq(10).text()) || 1;
     var totalCost = newDetailCost * quantity;
-    $row.find("td").eq(14).text(formatToTwo(totalCost));
+    $row.find("td").eq(14).text(totalCost.toFixed(2));
   }
 
   function recalcAllRows() {
@@ -277,7 +276,7 @@ $(document).ready(function() {
         } else {
           console.warn("colResizable plugin is not loaded");
         }
-        // Wywołujemy recalcSummary() z opóźnieniem 300 ms, aby mieć pewność, że wszystkie wiersze są w DOM
+        // Wywołujemy recalcSummary() z opóźnieniem 300 ms
         setTimeout(function() {
           recalcSummary();
         }, 300);
