@@ -31,7 +31,7 @@ $(document).ready(function() {
            (s < 10 ? "0" + s : s);
   }
 
-  // Funkcja do ładowania konfiguracji z serwera
+  // Funkcja do ładowania konfiguracji z backendu
   function loadConfig() {
     $.ajax({
       url: '/get_config',
@@ -55,7 +55,7 @@ $(document).ready(function() {
   // Wywołujemy loadConfig przy ładowaniu strony
   loadConfig();
 
-  // Funkcja updateConfig – wysyła nowe wartości konfiguracji do serwera i przelicza ceny w tabeli
+  // Funkcja updateConfig – wysyła nowe wartości z panelu do backendu, a następnie przelicza ceny w tabeli
   function updateConfig() {
     var newConfig = {
       cutting_costs: {
@@ -78,6 +78,7 @@ $(document).ready(function() {
       success: function(response) {
         console.log("Konfiguracja zaktualizowana:", response);
         recalcAllRows();
+        recalcSummary();
       },
       error: function(xhr, status, error) {
         console.error("Błąd przy aktualizacji konfiguracji:", error);
@@ -90,7 +91,7 @@ $(document).ready(function() {
     updateConfig();
   });
 
-  // Funkcje do pobierania stawek z formularza na podstawie materiału
+  // Funkcje do pobierania stawek z formularza na podstawie tekstu z kolumny "Materiał"
   function getCuttingRate(material) {
     material = material.toLowerCase();
     if (material.indexOf("1.4301") !== -1) {
@@ -132,7 +133,8 @@ $(document).ready(function() {
     }
     var bendingCost = parseFloat($("#bendingCostSum").val()) || 0;
     var newDetailCost = baseCost + (bendingCount * bendingCost);
-    // Aktualizacja komórek – indeksy odpowiadają kolejności kolumn w tabeli
+    // Aktualizacja komórek – indeksy zgodne z kolejnością kolumn:
+    // Kolumna 11: Koszt cięcia, 12: Koszt materiału, 13: Koszt detalu, 14: Całkowity koszt
     $row.find("td").eq(11).text(newCuttingCost.toFixed(2));
     $row.find("td").eq(12).text(newMaterialCost.toFixed(2));
     $row.find("td").eq(13).text(newDetailCost.toFixed(2));
@@ -146,82 +148,137 @@ $(document).ready(function() {
     });
   }
 
+  // Funkcja przeliczająca podsumowanie wyceny w karcie "Wycena:"
+  function recalcSummary() {
+    console.log("Recalculating summary");
+    var detailCount = 0; // suma ilości detali (kolumna "Ilość" – indeks 10)
+    var totalCuttingCost = 0;
+    var totalMaterialCost = 0;
+    var totalPrice = 0;
+    var materialBreakdown = {}; // dla kosztu materiału wg gatunków
+
+    $("#detailsTableBody tr").each(function(){
+      var $row = $(this);
+      if ($row.find("input.detailCheckbox").prop("checked")) {
+        var qty = parseFloat($row.find("td").eq(10).text()) || 1;
+        detailCount += qty;
+        var cuttingCost = parseFloat($row.find("td").eq(11).text()) || 0;
+        totalCuttingCost += cuttingCost;
+        var materialCost = parseFloat($row.find("td").eq(12).text()) || 0;
+        totalMaterialCost += materialCost;
+        var rowTotal = parseFloat($row.find("td").eq(14).text()) || 0;
+        totalPrice += rowTotal;
+        var materialText = $row.find("td").eq(3).text().toLowerCase();
+        var key = "Inne";
+        if (materialText.indexOf("1.0038") !== -1 || materialText.indexOf("st37") !== -1) {
+          key = "Stal czarna";
+        } else if (materialText.indexOf("1.4301") !== -1) {
+          key = "Stal nierdzewna";
+        } else if (materialText.indexOf("aluminium") !== -1) {
+          key = "Aluminium";
+        }
+        if (!materialBreakdown[key]) {
+          materialBreakdown[key] = 0;
+        }
+        materialBreakdown[key] += materialCost;
+      }
+    });
+
+    var summaryHtml = "<p>Ilość detali: " + detailCount + "</p>";
+    summaryHtml += "<p>Łączny koszt cięcia: " + totalCuttingCost.toFixed(2) + "</p>";
+    summaryHtml += "<p>Łączny koszt materiału:</p><ul>";
+    for (var key in materialBreakdown) {
+      summaryHtml += "<li>" + key + ": " + materialBreakdown[key].toFixed(2) + "</li>";
+    }
+    summaryHtml += "</ul>";
+    summaryHtml += "<p>Całkowita cena: " + totalPrice.toFixed(2) + "</p>";
+
+    $("#pricingSummary").html(summaryHtml);
+  }
+
   // Nasłuchiwanie zmian w polach "Ilość gięć" w tabeli detali
   $(document).on("change", ".bending-input", function() {
     var $row = $(this).closest("tr");
     recalcRow($row);
+    recalcSummary();
+  });
+
+  // Nasłuchiwanie zmian checkboxów detali
+  $(document).on("change", ".detailCheckbox", function() {
+    recalcSummary();
   });
 
   // Obsługa uploadu pliku
-    $("#fileInput").change(function(){
-      var fileName = $(this).val().split("\\").pop();
-      var programId = generateProgramId();
-      $("#loading").show();
-      var file = $(this)[0].files[0];
-      if (!file) return;
-      var formData = new FormData();
-      formData.append("file", file);
-      $.ajax({
-        url: '/upload',
-        type: 'POST',
-        data: formData,
-        contentType: false,
-        processData: false,
-        success: function(response) {
-          $("#loading").hide();
-          var programsTbody = $("#programsTableBody");
-          var progRow = "<tr data-program-id='" + programId + "'>";
-          progRow += "<td><button class='btn btn-danger btn-sm remove-program' data-program-id='" + programId + "'>-</button></td>";
-          progRow += "<td>" + (response.name || "") + "</td>";
-          progRow += "<td>" + (response.material || "") + "</td>";
-          progRow += "<td>" + (response.thicknes || "") + "</td>";
-          progRow += "<td>" + (response.machine_time || "") + "</td>";
-          progRow += "<td>" + (response.program_counts || "") + "</td>";
-          progRow += "</tr>";
-          programsTbody.append(progRow);
-          var detailsTbody = $("#detailsTableBody");
-          response.details.forEach(function(detail) {
-            // Generowanie wiersza detalu – dane źródłowe (cut_time, weight) zapisane jako atrybuty
-            var detailRow = "<tr data-program-id='" + programId + "' data-cut-time='" + detail.cut_time + "' data-weight='" + detail.weight + "'>";
-            detailRow += "<td><input type='checkbox' class='detailCheckbox' checked></td>";
-            if(detail.image_path) {
-              detailRow += "<td><img src='" + detail.image_path + "' alt='Rysunek' style='max-width:100px;'></td>";
-            } else {
-              detailRow += "<td></td>";
-            }
-            detailRow += "<td>" + detail.name + "</td>";
-            detailRow += "<td>" + (response.material || "") + "</td>";
-            detailRow += "<td>" + (response.thicknes || "") + "</td>";
-            detailRow += "<td>" + (detail.dim_x || "") + "</td>";
-            detailRow += "<td>" + (detail.dim_y || "") + "</td>";
-            // Nowa kolumna: Waga
-            detailRow += "<td>" + parseFloat(detail.weight).toFixed(2) + "</td>";
-            // Kolumna "Ilość gięć"
-            detailRow += "<td><input type='number' class='bending-input' value='0' min='0' style='width:100%; background:inherit; border:none; text-align:center;'/></td>";
-            // Czas cięcia – format HH:MM:SS (cut_time w godzinach * 3600)
-            detailRow += "<td>" + formatSecondsToHMS(detail.cut_time * 3600) + "</td>";
-            detailRow += "<td>" + detail.quantity + "</td>";
-            detailRow += "<td>" + (detail.cutting_cost || "") + "</td>";
-            detailRow += "<td>" + (detail.material_cost || "") + "</td>";
-            detailRow += "<td>" + (detail.total_cost || "") + "</td>";
-            detailRow += "<td>" + (detail.total_cost_quantity || "") + "</td>";
-            detailRow += "</tr>";
-            detailsTbody.append(detailRow);
-          });
-          // <-- Dodajemy przeliczenie wszystkich wierszy zaraz po wstawieniu danych
-          recalcAllRows();
-          $("#detailsTable").colResizable({ liveDrag: true });
-        },
-        error: function(xhr) {
-          $("#loading").hide();
-          alert("Wystąpił błąd: " + xhr.responseJSON.error);
-        }
-      });
+  $("#fileInput").change(function(){
+    var fileName = $(this).val().split("\\").pop();
+    var programId = generateProgramId();
+    $("#loading").show();
+    var file = $(this)[0].files[0];
+    if (!file) return;
+    var formData = new FormData();
+    formData.append("file", file);
+    $.ajax({
+      url: '/upload',
+      type: 'POST',
+      data: formData,
+      contentType: false,
+      processData: false,
+      success: function(response) {
+        $("#loading").hide();
+        var programsTbody = $("#programsTableBody");
+        var progRow = "<tr data-program-id='" + programId + "'>";
+        progRow += "<td><button class='btn btn-danger btn-sm remove-program' data-program-id='" + programId + "'>-</button></td>";
+        progRow += "<td>" + (response.name || "") + "</td>";
+        progRow += "<td>" + (response.material || "") + "</td>";
+        progRow += "<td>" + (response.thicknes || "") + "</td>";
+        progRow += "<td>" + (response.machine_time || "") + "</td>";
+        progRow += "<td>" + (response.program_counts || "") + "</td>";
+        progRow += "</tr>";
+        programsTbody.append(progRow);
+        var detailsTbody = $("#detailsTableBody");
+        response.details.forEach(function(detail) {
+          // Dodajemy dane źródłowe (cut_time, weight) jako atrybuty do tr
+          var detailRow = "<tr data-program-id='" + programId + "' data-cut-time='" + detail.cut_time + "' data-weight='" + detail.weight + "'>";
+          detailRow += "<td><input type='checkbox' class='detailCheckbox' checked></td>";
+          if(detail.image_path) {
+            detailRow += "<td><img src='" + detail.image_path + "' alt='Rysunek' style='max-width:100px;'></td>";
+          } else {
+            detailRow += "<td></td>";
+          }
+          detailRow += "<td>" + detail.name + "</td>";
+          detailRow += "<td>" + (response.material || "") + "</td>";
+          detailRow += "<td>" + (response.thicknes || "") + "</td>";
+          detailRow += "<td>" + (detail.dim_x || "") + "</td>";
+          detailRow += "<td>" + (detail.dim_y || "") + "</td>";
+          // Nowa kolumna: Waga (zaokrąglona do dwóch miejsc)
+          detailRow += "<td>" + parseFloat(detail.weight).toFixed(2) + "</td>";
+          // Kolumna "Ilość gięć" – edytowalne pole z min="0"
+          detailRow += "<td><input type='number' class='bending-input' value='0' min='0' style='width:100%; background:inherit; border:none; text-align:center;'/></td>";
+          // Czas cięcia – konwertujemy z godzin (cut_time) na sekundy dla formatu HH:MM:SS
+          detailRow += "<td>" + formatSecondsToHMS(detail.cut_time * 3600) + "</td>";
+          detailRow += "<td>" + detail.quantity + "</td>";
+          detailRow += "<td>" + (detail.cutting_cost || "") + "</td>";
+          detailRow += "<td>" + (detail.material_cost || "") + "</td>";
+          detailRow += "<td>" + (detail.total_cost || "") + "</td>";
+          detailRow += "<td>" + (detail.total_cost_quantity || "") + "</td>";
+          detailRow += "</tr>";
+          detailsTbody.append(detailRow);
+        });
+        $("#detailsTable").colResizable({ liveDrag: true });
+        recalcSummary(); // Po dodaniu nowych wierszy przeliczamy podsumowanie
+      },
+      error: function(xhr) {
+        $("#loading").hide();
+        alert("Wystąpił błąd: " + xhr.responseJSON.error);
+      }
     });
+  });
 
+  // Obsługa usuwania programu
   $(document).on("click", ".remove-program", function(){
     var programId = $(this).data("program-id");
     $("#programsTableBody tr[data-program-id='" + programId + "']").remove();
     $("#detailsTableBody tr[data-program-id='" + programId + "']").remove();
+    recalcSummary();
   });
 });
