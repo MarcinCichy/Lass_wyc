@@ -6,15 +6,20 @@ $(document).ready(function() {
     $("#fileInput").click();
   });
 
-  // Toggle sidebar – obsługa przycisku
-  $("#sidebarToggle").click(function(){
-    $("#sidebar").toggleClass("expanded");
-    if ($("#sidebar").hasClass("expanded")) {
-      $(".main-container").removeClass("collapsed").addClass("expanded");
-      $(this).text("〈");
+  // Handler dla przycisku zmiany motywu (dark/light)
+  $("#themeToggle").click(function(){
+    var darkTheme = $("#themeToggle").data("darkTheme");
+    if(darkTheme === undefined) darkTheme = true;
+    if(darkTheme) {
+      $("#themeStylesheet").attr("href", "https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/flatly/bootstrap.min.css");
+      $("#themeIcon").text("☾");
+      $("#themeToggle").data("darkTheme", false);
+      $("body").addClass("light-theme");
     } else {
-      $(".main-container").removeClass("expanded").addClass("collapsed");
-      $(this).text("〉");
+      $("#themeStylesheet").attr("href", "https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/darkly/bootstrap.min.css");
+      $("#themeIcon").text("☀");
+      $("#themeToggle").data("darkTheme", true);
+      $("body").removeClass("light-theme");
     }
   });
 
@@ -123,7 +128,7 @@ $(document).ready(function() {
     return parseFloat($("#materialCostBlack").val()) || 0;
   }
 
-  // Funkcja przeliczająca koszty dla jednego wiersza detalu (używamy toFixed(2) dla ostatniej kolumny)
+  // Funkcja przeliczająca koszty dla jednego wiersza detalu
   function recalcRow($row) {
     var cutTime = parseFloat($row.data("cut-time")) || 0; // czas cięcia w godzinach
     var weight = parseFloat($row.data("weight")) || 0;
@@ -140,15 +145,18 @@ $(document).ready(function() {
     }
     var bendingCost = parseFloat($("#bendingCostSum").val()) || 0;
     var newDetailCost = baseCost + (bendingCount * bendingCost);
-    // Aktualizacja poszczególnych komórek
+    // Ustawiamy wartości w kolumnach: Koszt cięcia (11), Koszt materiału (12), Koszt detalu (13)
     $row.find("td").eq(11).text(newCuttingCost.toFixed(2));
     $row.find("td").eq(12).text(newMaterialCost.toFixed(2));
     $row.find("td").eq(13).text(newDetailCost.toFixed(2));
+
+    // Ostatnia kolumna: Całkowity koszt
     var quantity = parseFloat($row.find("td").eq(10).text()) || 1;
     var totalCost = newDetailCost * quantity;
     $row.find("td").eq(14).text(totalCost.toFixed(2));
   }
 
+  // Przeliczenie wszystkich wierszy
   function recalcAllRows() {
     $("#detailsTableBody tr").each(function(){
       recalcRow($(this));
@@ -166,6 +174,7 @@ $(document).ready(function() {
 
     $("#detailsTableBody tr").each(function(){
       var $row = $(this);
+      // Sprawdzamy, czy checkbox w pierwszej kolumnie jest zaznaczony
       if ($row.find("input.detailCheckbox").prop("checked")) {
         var qty = parseFloat($row.find("td").eq(10).text()) || 1;
         detailCount += qty;
@@ -224,6 +233,7 @@ $(document).ready(function() {
     if (!file) return;
     var formData = new FormData();
     formData.append("file", file);
+
     $.ajax({
       url: '/upload',
       type: 'POST',
@@ -232,6 +242,7 @@ $(document).ready(function() {
       processData: false,
       success: function(response) {
         $("#loading").hide();
+        // Dodajemy wiersz programu do tabeli programów
         var programsTbody = $("#programsTableBody");
         var progRow = "<tr data-program-id='" + programId + "'>";
         progRow += "<td><button class='btn btn-danger btn-sm remove-program' data-program-id='" + programId + "'>-</button></td>";
@@ -242,9 +253,11 @@ $(document).ready(function() {
         progRow += "<td>" + (response.program_counts || "") + "</td>";
         progRow += "</tr>";
         programsTbody.append(progRow);
+
+        // Dodajemy wiersze detali do tabeli
         var detailsTbody = $("#detailsTableBody");
         response.details.forEach(function(detail) {
-          // Dodajemy dane źródłowe (cut_time, weight) jako atrybuty do tr
+          // W kolumnach "Koszt detalu" i "Całkowity koszt" wstawiamy puste wartości (zamiast detail.total_cost)
           var detailRow = "<tr data-program-id='" + programId + "' data-cut-time='" + detail.cut_time + "' data-weight='" + detail.weight + "'>";
           detailRow += "<td><input type='checkbox' class='detailCheckbox' checked></td>";
           if(detail.image_path) {
@@ -257,26 +270,34 @@ $(document).ready(function() {
           detailRow += "<td>" + (response.thicknes || "") + "</td>";
           detailRow += "<td>" + (detail.dim_x || "") + "</td>";
           detailRow += "<td>" + (detail.dim_y || "") + "</td>";
-          // Nowa kolumna: Waga (zaokrąglona do dwóch miejsc)
-          detailRow += "<td>" + parseFloat(detail.weight).toFixed(2) + "</td>";
-          // Kolumna "Ilość gięć" – edytowalne pole z min="0"
+          detailRow += "<td>" + parseFloat(detail.weight).toFixed(2) + "</td>"; // waga
+          // Ilość gięć
           detailRow += "<td><input type='number' class='bending-input' value='0' min='0' style='width:100%; background:inherit; border:none; text-align:center;'/></td>";
-          // Czas cięcia – konwertujemy z godzin (cut_time) na sekundy dla formatu HH:MM:SS
+          // Czas cięcia
           detailRow += "<td>" + formatSecondsToHMS(detail.cut_time * 3600) + "</td>";
+          // Ilość
           detailRow += "<td>" + detail.quantity + "</td>";
-          detailRow += "<td>" + (detail.cutting_cost || "") + "</td>";
-          detailRow += "<td>" + (detail.material_cost || "") + "</td>";
-          detailRow += "<td>" + (detail.total_cost || "") + "</td>";
-          detailRow += "<td>" + (detail.total_cost_quantity || "") + "</td>";
+          // Koszt cięcia (puste, bo recalcRow ustawi)
+          detailRow += "<td></td>";
+          // Koszt materiału (puste)
+          detailRow += "<td></td>";
+          // Koszt detalu (puste)
+          detailRow += "<td></td>";
+          // Całkowity koszt (puste)
+          detailRow += "<td></td>";
           detailRow += "</tr>";
           detailsTbody.append(detailRow);
         });
+
+        // Jeśli plugin colResizable jest dostępny, inicjujemy go
         if (typeof $.fn.colResizable === "function") {
           $("#detailsTable").colResizable({ liveDrag: true });
         } else {
           console.warn("colResizable plugin is not loaded");
         }
-        // Wywołujemy recalcSummary() z opóźnieniem 300 ms
+
+        // Automatycznie przeliczamy wiersze i podsumowanie po dodaniu
+        recalcAllRows();
         setTimeout(function() {
           recalcSummary();
         }, 300);
@@ -295,4 +316,16 @@ $(document).ready(function() {
     $("#detailsTableBody tr[data-program-id='" + programId + "']").remove();
     recalcSummary();
   });
+});
+
+
+$("#sidebarToggle").click(function(){
+  $("#sidebar").toggleClass("expanded");
+  if ($("#sidebar").hasClass("expanded")) {
+    $(".main-container").removeClass("collapsed").addClass("expanded");
+    $(this).text("〈");
+  } else {
+    $(".main-container").removeClass("expanded").addClass("collapsed");
+    $(this).text("〉");
+  }
 });
