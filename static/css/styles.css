@@ -226,3 +226,13 @@ body.light-theme table td {
 input.bending-input {
     color: inherit !important;
 }
+
+#loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  background: transparent; /* brak tła overlay */
+  /* Opcjonalnie: możesz dodać padding lub margines, jeśli potrzebujesz */
+}
