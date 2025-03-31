@@ -49,17 +49,20 @@ html, body {
   width: 250px;
 }
 
-/* Gdy sidebar jest rozwinięty, main-container ma margin-left 250px */
-.main-container.expanded {
-  margin-left: 250px;
-}
-
 /* Sidebar content – wyświetlany tylko gdy panel rozwinięty */
 #sidebar .sidebar-content {
   display: none;
 }
 #sidebar.expanded .sidebar-content {
   display: block;
+}
+
+/* Przycisk toggle w panelu – przyklejony do prawej krawędzi */
+#sidebarToggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 11; /* wyżej od zawartości panelu */
 }
 
 /* Klasa fixed-height – stała wysokość zawartości kart "Dane programów" i "Wycena" */
@@ -72,13 +75,15 @@ html, body {
 .fixed-window {
   height: 100%;
   overflow-y: auto;
+  scrollbar-gutter: stable;  /* rezerwuje miejsce na scrollbar */
 }
 
+/* Tabela */
 .table {
-    width: 100%;
-    margin-top: 0rem;
-    margin-bottom: 1rem;
-    color: #fff;
+  width: 100%;
+  margin-top: 0rem;
+  margin-bottom: 1rem;
+  color: #fff;
 }
 
 /* Sticky nagłówki tabeli */
@@ -91,7 +96,6 @@ html, body {
   white-space: nowrap;
   padding: 8px;
 }
-
 
 /* Wiersze tabeli w ciele mają stałą wysokość */
 .sticky-table tbody tr {
@@ -172,7 +176,7 @@ html, body {
   box-shadow: none !important;
 }
 
-/* Nagłówki kart – ustalona wysokość i wyśrodkowanie pionowe tekstu, tekst wyrównany do lewej */
+/* Nagłówki kart – ustalona wysokość i wyśrodkowanie pionowe tekstu, wyrównanie do lewej */
 .card-header {
   height: 50px !important;
   line-height: 50px !important;
@@ -192,7 +196,7 @@ html, body {
   margin-top: 20px;
 }
 
-/* Checkboxy */
+/* Checkboxy – zachowujemy kolor zielony */
 input[type="checkbox"].detailCheckbox {
   accent-color: #28a745;
   display: block;
@@ -214,7 +218,7 @@ body.light-theme table td {
     color: #000; /* lub inny ciemny kolor */
 }
 
-/* Ustawia kolor tekstu w inputach kolumny "Ilość gięć" tak, aby dziedziczył kolor z otaczających komórek */
+/* Ustawia kolor tekstu w inputach kolumny "Ilość gięć", aby dziedziczył kolor otaczających komórek */
 input.bending-input {
     color: inherit !important;
 }
