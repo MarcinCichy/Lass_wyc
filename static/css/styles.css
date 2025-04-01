@@ -34,7 +34,7 @@ html, body {
 /* Sidebar – po lewej, domyślnie zwinięty (20px); przy rozwinięciu 250px */
 #sidebar {
   position: fixed;
-  top: 50px; /* poniżej górnego paska */
+  top: 50px;
   bottom: 0;
   left: 0;
   width: 20px;
@@ -49,11 +49,6 @@ html, body {
   width: 250px;
 }
 
-/* Dla ciemnego motywu – zmiana koloru prawej ramki sidebaru */
-body:not(.light-theme) #sidebar {
-  border-right: 1px solid #444;
-}
-
 /* Sidebar content – wyświetlany tylko gdy panel rozwinięty */
 #sidebar .sidebar-content {
   display: none;
@@ -62,7 +57,7 @@ body:not(.light-theme) #sidebar {
   display: block;
 }
 
-/* Przycisk toggle w panelu – przyklejony do prawej krawędzi */
+/* Przycisk toggle w panelu – przyklejony do prawej krawędzi panelu */
 #sidebarToggle {
   position: absolute;
   top: 10px;
@@ -80,14 +75,15 @@ body:not(.light-theme) #sidebar {
 .fixed-window {
   height: 100%;
   overflow-y: auto;
-  scrollbar-gutter: stable;  /* rezerwuje miejsce na scrollbar */
+  scrollbar-gutter: stable;
 }
 
+/* Tabela */
 .table {
-    width: 100%;
-    margin-top: 0rem;
-    margin-bottom: 1rem;
-    color: #fff;
+  width: 100%;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #fff;
 }
 
 /* Sticky nagłówki tabeli */
@@ -101,15 +97,31 @@ body:not(.light-theme) #sidebar {
   padding: 8px;
 }
 
-/* Wiersze tabeli w ciele mają stałą wysokość */
+/* Wiersze tabeli – zmniejszona wysokość i mniejszy padding */
 .sticky-table tbody tr {
-  height: 40px;
+  height: 30px;
 }
 .sticky-table tbody td {
-  padding: 8px;
+  padding: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Zebra striping – ciemny motyw */
+body:not(.light-theme) .sticky-table tbody tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+body:not(.light-theme) .sticky-table tbody tr:nth-child(odd) {
+  background-color: transparent;
+}
+
+/* Zebra striping – jasny motyw */
+body.light-theme .sticky-table tbody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+body.light-theme .sticky-table tbody tr:nth-child(odd) {
+  background-color: #fff;
 }
 
 /* Obrazki w tabeli detali */
@@ -200,7 +212,7 @@ body:not(.light-theme) #sidebar {
   margin-top: 20px;
 }
 
-/* Checkboxy – zachowujemy kolor zielony */
+/* Checkboxy – zachowujemy zielony kolor */
 input[type="checkbox"].detailCheckbox {
   accent-color: #28a745;
   display: block;
@@ -219,20 +231,20 @@ input[type="checkbox"].detailCheckbox {
 
 body.light-theme table th,
 body.light-theme table td {
-    color: #000; /* lub inny ciemny kolor */
+  color: #000;
 }
 
-/* Ustawia kolor tekstu w inputach kolumny "Ilość gięć" */
+/* Kolor tekstu w inputach kolumny "Ilość gięć" */
 input.bending-input {
-    color: inherit !important;
+  color: inherit !important;
 }
 
+/* Nowe style dla wskaźnika ładowania – wyświetlany na środku ekranu bez overlayu */
 #loading {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 9999;
-  background: transparent; /* brak tła overlay */
-  /* Opcjonalnie: możesz dodać padding lub margines, jeśli potrzebujesz */
+  background: transparent;
 }
