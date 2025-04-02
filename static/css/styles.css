@@ -31,6 +31,8 @@ html, body {
   height: calc(100vh - 50px);
 }
 
+
+
 /* Sidebar – po lewej, domyślnie zwinięty (20px); przy rozwinięciu 250px */
 #sidebar {
   position: fixed;
@@ -247,4 +249,9 @@ input.bending-input {
   transform: translate(-50%, -50%);
   z-index: 9999;
   background: transparent;
+}
+
+/* Dla ciemnego motywu – zmiana koloru prawej ramki sidebaru */
+body:not(.light-theme) #sidebar {
+    border-right: 1px solid #444;
 }
