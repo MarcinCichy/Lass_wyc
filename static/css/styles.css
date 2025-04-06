@@ -31,12 +31,10 @@ html, body {
   height: calc(100vh - 50px);
 }
 
-
-
 /* Sidebar – po lewej, domyślnie zwinięty (20px); przy rozwinięciu 250px */
 #sidebar {
   position: fixed;
-  top: 50px;
+  top: 50px; /* poniżej górnego paska */
   bottom: 0;
   left: 0;
   width: 20px;
@@ -59,7 +57,12 @@ html, body {
   display: block;
 }
 
-/* Przycisk toggle w panelu – przyklejony do prawej krawędzi panelu */
+/* Prawy border sidebaru w ciemnym motywie */
+body:not(.light-theme) #sidebar {
+  border-right: 1px solid #444;
+}
+
+/* Przycisk toggle w panelu – przyklejony do prawej krawędzi */
 #sidebarToggle {
   position: absolute;
   top: 10px;
@@ -67,7 +70,7 @@ html, body {
   z-index: 11;
 }
 
-/* Klasa fixed-height – stała wysokość zawartości kart "Dane programów" i "Wycena" */
+/* Klasa fixed-height – stała wysokość zawartości kart "Dane programów" i "Wyceny" */
 .fixed-height {
   height: 300px;
   padding: 0;
@@ -82,10 +85,10 @@ html, body {
 
 /* Tabela */
 .table {
-  width: 100%;
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #fff;
+    width: 100%;
+    margin-top: 0rem;
+    margin-bottom: 1rem;
+    color: #fff;
 }
 
 /* Sticky nagłówki tabeli */
@@ -99,31 +102,15 @@ html, body {
   padding: 8px;
 }
 
-/* Wiersze tabeli – zmniejszona wysokość i mniejszy padding */
+/* Wiersze tabeli w ciele mają stałą wysokość */
 .sticky-table tbody tr {
-  height: 30px;
+  height: 40px;
 }
 .sticky-table tbody td {
-  padding: 4px;
+  padding: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* Zebra striping – ciemny motyw */
-body:not(.light-theme) .sticky-table tbody tr:nth-child(even) {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-body:not(.light-theme) .sticky-table tbody tr:nth-child(odd) {
-  background-color: transparent;
-}
-
-/* Zebra striping – jasny motyw */
-body.light-theme .sticky-table tbody tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-body.light-theme .sticky-table tbody tr:nth-child(odd) {
-  background-color: #fff;
 }
 
 /* Obrazki w tabeli detali */
@@ -231,27 +218,24 @@ input[type="checkbox"].detailCheckbox {
   height: 100%;
 }
 
+/* Motyw jasny – teksty tabeli mają ciemny kolor */
 body.light-theme table th,
 body.light-theme table td {
-  color: #000;
+    color: #000;
 }
 
 /* Kolor tekstu w inputach kolumny "Ilość gięć" */
 input.bending-input {
-  color: inherit !important;
+    color: inherit !important;
 }
 
-/* Nowe style dla wskaźnika ładowania – wyświetlany na środku ekranu bez overlayu */
-#loading {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 9999;
-  background: transparent;
+/* Menu w nagłówku – wymuszamy biały kolor napisów i brak zmiany przy kliknięciu */
+nav.nav .nav-link {
+  color: #fff !important;
+  padding: 0 10px;
 }
-
-/* Dla ciemnego motywu – zmiana koloru prawej ramki sidebaru */
-body:not(.light-theme) #sidebar {
-    border-right: 1px solid #444;
+nav.nav .nav-link:hover,
+nav.nav .nav-link:active,
+nav.nav .nav-link:focus {
+  color: #fff !important;
 }

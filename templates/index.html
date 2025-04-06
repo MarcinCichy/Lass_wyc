@@ -2,7 +2,7 @@
 <html lang="pl">
   <head>
     <meta charset="utf-8">
-    <title>LassSup Web</title>
+    <title>Strona główna - LassSup Web</title>
     <!-- Domyślny motyw ciemny (Darkly) -->
     <link id="themeStylesheet" rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/darkly/bootstrap.min.css">
     <!-- Własne style -->
@@ -15,13 +15,24 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/colresizable/1.6/colResizable-1.6.min.js"></script>
   </head>
   <body>
-    <!-- Nagłówek strony – przycisk zmiany motywu pozostaje tutaj -->
+    <!-- Nagłówek strony – menu -->
     <header class="card-header top-bar">
       <div class="d-flex justify-content-between align-items-center w-100">
         <div class="d-flex align-items-center">
           <div class="logo" style="margin-left:10px;">
             <h5 class="mb-0">LassSup Web</h5>
           </div>
+          <!-- Menu obok logo -->
+          <nav class="ml-3">
+            <ul class="nav">
+              <li class="nav-item">
+                <a class="nav-link menu-link" href="/klienci">Klienci</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link menu-link" href="/wyceny">Wyceny</a>
+              </li>
+            </ul>
+          </nav>
         </div>
         <div>
           <button id="themeToggle" class="btn btn-secondary theme-toggle-btn">
@@ -31,169 +42,17 @@
       </div>
     </header>
 
-    <!-- Ukryty input pliku -->
-    <input type="file" id="fileInput" name="file" accept=".html, .pdf">
-
-    <!-- Sidebar – panel z lewej -->
-    <div id="sidebar">
-      <!-- Przycisk toggle przeniesiony do panelu, przyklejony do prawej krawędzi -->
-      <button id="sidebarToggle" class="btn btn-primary sidebar-toggle-btn">〉</button>
-      <div class="sidebar-content">
-        <form id="pricingForm">
-          <div class="form-group">
-            <label for="cuttingCostBlack">Koszt cięcia stali czarnej</label>
-            <input type="number" class="form-control" id="cuttingCostBlack" value="">
-          </div>
-          <div class="form-group">
-            <label for="cuttingCostStainless">Koszt cięcia stali nierdzewnej</label>
-            <input type="number" class="form-control" id="cuttingCostStainless" value="">
-          </div>
-          <div class="form-group">
-            <label for="cuttingCostAluminium">Koszt cięcia aluminium</label>
-            <input type="number" class="form-control" id="cuttingCostAluminium" value="">
-          </div>
-          <div class="form-group">
-            <label for="materialCostBlack">Koszt materiału (stal czarna)</label>
-            <input type="number" class="form-control" id="materialCostBlack" value="">
-          </div>
-          <div class="form-group">
-            <label for="materialCostStainless">Koszt materiału (stal nierdzewna)</label>
-            <input type="number" class="form-control" id="materialCostStainless" value="">
-          </div>
-          <div class="form-group">
-            <label for="materialCostAluminium">Koszt materiału (aluminium)</label>
-            <input type="number" class="form-control" id="materialCostAluminium" value="">
-          </div>
-          <div class="form-group">
-            <label for="bendingCostSum">Suma kosztów gięcia</label>
-            <input type="number" class="form-control" id="bendingCostSum" value="">
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Główna zawartość -->
+    <!-- Główna zawartość – placeholder -->
     <div class="container-fluid main-container">
-      <!-- Karty "Dane programów:" i "Wycena:" -->
       <div class="row header-spacing mb-3">
-        <!-- Karta "Dane programów:" -->
-        <div class="col-md-6">
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <span class="header-text">Dane programów:</span>
-              <button id="plusButton" class="btn btn-success plus-btn">
-                <span style="font-size:1.5em;">&#43;</span>
-              </button>
-            </div>
-            <div class="card-body fixed-height">
-              <div class="table-responsive fixed-window">
-                <table id="programsTable" class="table table-bordered sticky-table">
-                  <colgroup>
-                    <col style="width:5%;">
-                    <col style="width:25%;">
-                    <col style="width:20%;">
-                    <col style="width:15%;">
-                    <col style="width:20%;">
-                    <col style="width:15%;">
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>Nazwa programu</th>
-                      <th>Materiał</th>
-                      <th>Grubość</th>
-                      <th>Czas programu</th>
-                      <th>Ilość powtórzeń</th>
-                    </tr>
-                  </thead>
-                  <tbody id="programsTableBody">
-                    <!-- Wiersze programów dodawane dynamicznie -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Karta "Wycena:" -->
-        <div class="col-md-6">
-          <div class="card">
-            <div class="card-header">Wycena:</div>
-            <div class="card-body fixed-height">
-              <div id="pricingSummary">
-                <p>Ilość detali: 0</p>
-                <p>Łączny koszt cięcia: 0.00</p>
-                <p>Łączny koszt materiału:</p>
-                <ul id="materialCostBreakdown">
-                  <li>Stal czarna: 0.00</li>
-                  <li>Stal nierdzewna: 0.00</li>
-                  <li>Aluminium: 0.00</li>
-                  <li>Inne: 0.00</li>
-                </ul>
-                <p>Całkowita cena: 0.00</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Karta "Detale:" -->
-      <div class="row flex-grow-1">
         <div class="col">
-          <div class="card h-100">
-            <div class="card-header">Detale:</div>
+          <div class="card">
+            <div class="card-header">Strona główna</div>
             <div class="card-body fixed-height">
-              <div class="table-responsive fixed-window">
-                <table id="detailsTable" class="table table-bordered sticky-table">
-                  <colgroup>
-                    <col style="width:2%;">
-                    <col style="width:10%;">
-                    <col style="width:15%;">
-                    <col style="width:10%;">
-                    <col style="width:10%;"> <!-- Grubość -->
-                    <col style="width:10%;"> <!-- Wymiar X -->
-                    <col style="width:10%;"> <!-- Wymiar Y -->
-                    <col style="width:10%;"> <!-- Waga -->
-                    <col style="width:10%;"> <!-- Ilość gięć -->
-                    <col style="width:10%;"> <!-- Czas cięcia -->
-                    <col style="width:10%;"> <!-- Ilość -->
-                    <col style="width:10%;"> <!-- Koszt cięcia -->
-                    <col style="width:10%;"> <!-- Koszt materiału -->
-                    <col style="width:10%;"> <!-- Koszt detalu -->
-                    <col style="width:10%;"> <!-- Całkowity koszt -->
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th><input type="checkbox" id="selectAllCheckbox" class="detailCheckbox" checked /></th>
-                      <th>Rysunek</th>
-                      <th>Nazwa detalu</th>
-                      <th>Materiał</th>
-                      <th>Grubość</th>
-                      <th>Wymiar X</th>
-                      <th>Wymiar Y</th>
-                      <th>Waga</th>
-                      <th>Ilość gięć</th>
-                      <th>Czas cięcia</th>
-                      <th>Ilość</th>
-                      <th>Koszt cięcia</th>
-                      <th>Koszt materiału</th>
-                      <th>Koszt detalu</th>
-                      <th>Całkowity koszt</th>
-                    </tr>
-                  </thead>
-                  <tbody id="detailsTableBody">
-                    <!-- Wiersze detali dodawane dynamicznie -->
-                  </tbody>
-                </table>
-              </div>
+              <p>Zawartość strony głównej wkrótce...</p>
             </div>
           </div>
         </div>
-      </div>
-      <!-- Wskaźnik ładowania – wyświetlany tylko spinner na środku strony -->
-      <div id="loading">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden"></span>
-        </div>
-        <span>Przetwarzanie pliku, proszę czekać...</span>
       </div>
     </div>
 

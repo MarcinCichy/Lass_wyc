@@ -87,5 +87,13 @@ def get_config():
     # Zwraca aktualną konfigurację jako JSON
     return jsonify(config)
 
+@app.route('/wyceny')
+def wyceny():
+    return render_template('wyceny.html')
+
+@app.route('/klienci')
+def klienci():
+    return render_template('klienci.html')
+
 if __name__ == '__main__':
     app.run(debug=True)
