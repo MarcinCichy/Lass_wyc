@@ -38,7 +38,8 @@ html, body {
   bottom: 0;
   left: 0;
   width: 20px;
-  background: inherit;
+  background-color: #292b2c; /* ten sam kolor co tło kart */
+  opacity: 1; /* pełna nieprzeźroczystość */
   border-right: 1px solid #ddd;
   padding: 15px;
   overflow-y: auto;
