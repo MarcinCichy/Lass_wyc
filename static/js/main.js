@@ -329,3 +329,13 @@ $("#sidebarToggle").click(function(){
     $(this).text("〉");
   }
 });
+
+document.getElementById("themeToggle").addEventListener("click", function() {
+    document.body.classList.toggle("light-mode");
+    const themeIcon = document.getElementById("themeIcon");
+    if (document.body.classList.contains("light-mode")) {
+        themeIcon.textContent = "🌙";
+    } else {
+        themeIcon.textContent = "☀";
+    }
+});

@@ -229,7 +229,7 @@ input.bending-input {
     color: inherit !important;
 }
 
-/* Menu w nagłówku – wymuszamy biały kolor napisów i brak zmiany przy kliknięciu */
+/* Style dla menu w nagłówku – wymuszamy biały kolor napisów i brak zmiany przy kliknięciu */
 nav.nav .nav-link {
   color: #fff !important;
   padding: 0 10px;
@@ -238,4 +238,36 @@ nav.nav .nav-link:hover,
 nav.nav .nav-link:active,
 nav.nav .nav-link:focus {
   color: #fff !important;
+}
+
+/* Kolor linków w trybie ciemnym */
+body {
+    color: white;
+}
+
+.logo-link {
+    color: white !important;
+    text-decoration: none;
+}
+
+.menu-link {
+    color: white !important;
+    text-decoration: none;
+}
+
+.menu-link:hover {
+    text-decoration: underline;
+}
+
+/* Kolor linków w trybie jasnym */
+body.light-mode {
+    color: black;
+}
+
+body.light-mode .logo-link {
+    color: black !important;
+}
+
+body.light-mode .menu-link {
+    color: black !important;
 }
