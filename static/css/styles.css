@@ -38,7 +38,7 @@ html, body {
   bottom: 0;
   left: 0;
   width: 20px;
-  background-color: #292b2c; /* ten sam kolor co tło kart */
+  background-color: #292b2c; /* kolor tła dla trybu ciemnego */
   opacity: 1; /* pełna nieprzeźroczystość */
   border-right: 1px solid #ddd;
   padding: 15px;
@@ -46,6 +46,13 @@ html, body {
   transition: width 0.3s;
   z-index: 10;
 }
+
+/* Dla trybu jasnego – ustaw kolor tła zgodny z kartami */
+body.light-mode #sidebar {
+  background-color: #ffffff; /* lub inny kolor odpowiadający kartom w trybie jasnym */
+  border-right: 1px solid #ccc;
+}
+
 #sidebar.expanded {
   width: 250px;
 }
